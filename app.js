@@ -6,6 +6,8 @@ app.use(bodyParser.urlencoded({ extended: false}))
 app.use(bodyParser.json())
 let templatePath = __dirname + '/templates/'
 
+const User = require('./dbmodels/user');
+
 app.get('/', function(req, res){
     res.send('Hello world')
 })
@@ -23,8 +25,26 @@ app.post('/sign-in', function(req, res){
     console.log(username);
     console.log(password);
     var response = {
-        "success": 0,
-    }
+        "user": req.body.username,
+        "password": req.body.password
+      };
+    User.findOne({
+        where: {
+            user: response.user,
+            password: response.password
+        }
+    }).then(userInfo => {
+        if (userInfo) {
+            console.log('Login Success.');
+        }
+        else {
+            console.log('Login Failed.');
+        }
+    }).catch(err => {
+        response.status = 'ERROR';
+        console.log('Login ERROR.');
+        res.end(JSON.stringify(response));
+    });
     res.writeHead(200,{'Content-Type':'text/html;charset=utf-8'});
     res.end(JSON.stringify(response))
 })
