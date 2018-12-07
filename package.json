@@ -1,0 +1,24 @@
+{
+  "name": "onlinefilesystem",
+  "version": "1.0.0",
+  "description": "后端使用express.js + MySQL 前端待定",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kingiw/onlineFileSystem.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kingiw/onlineFileSystem/issues"
+  },
+  "homepage": "https://github.com/kingiw/onlineFileSystem#readme",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "mysql": "^2.16.0"
+  }
+}
