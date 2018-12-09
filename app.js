@@ -95,7 +95,6 @@ app.route('/signin')
         let sess = req.session;
         
         // Judge whether it's validate
-<<<<<<< HEAD
         User.findOne({
             where: {
                 user: username,
@@ -118,26 +117,6 @@ app.route('/signin')
             console.log('SQL ERROR.');
             return res.json({success: -1})
         });
-=======
-        // Your code here
-        //-------This is my toy, you should implement the similar function yourself -----
-        //-------*user* is undefined if it's not validate, or it is the username
-        let validate = Users.findUser(username, password);
-        //------------------------------------
-
-
-        if (validate) {
-            req.session.regenerate(function(err) {
-                if (err) {
-                    return res.json({success: -1})
-                }
-                req.session.loginUser = username;
-                res.redirect('/');
-            })
-        } else {
-           return res.json({success: -1, msg: 'Username or password incorrect, please try again.'})
-        }
->>>>>>> c0ed9a6fa1549193f2a67d409b01a5e30b1057ef
     })
 
 app.route('/logout').post((req, res) => {
@@ -161,56 +140,42 @@ app.route('/signup')
         let password = encrypt.md5(req.body.password);
         console.log(username, password);
 
-<<<<<<< HEAD
-        // Insert data to database
-        // Your code here
-        User.create({
-            user: username,
-            password: password
-        }).then(p => {
-            console.log('created.' + JSON.stringify(p));
-            var max_i = 0
-            Directory.findAll()
-                .then(directories => {
-                    for (let d in directories) {
-                        if (d.dir_id > max_i) {
-                            max_i = d.dir_id
-                        }
-                        if (d.user == username) {
-                            console.log('failed: user directory created');
-                            return;
-                        }
-                    }
-                    max_i += 1
-                    Directory.create({
-                        dir_id: max_i,
-                        name: username,
-                        user: username,
-                        parent_id: null
-                    }).then(p => {
-                        console.log('created.' + JSON.stringify(p));
-                    }).catch(err => {
-                        console.log('failed: ' + err);
-                    });
-                })
-                .catch(err => {
-                    console.log('failed: ' + err);
-                });
-        }).catch(err => {
-            console.log('failed: ' + err);
-        });
-        res.redirect('/');
-=======
         try {
 
             // Insert data to database
             // Your code here
-            
+            User.create({
+                user: username,
+                password: password
+            }).then(p => {
+                console.log('created.' + JSON.stringify(p));
+                var max_i = 0
+                Directory.findAll()
+                    .then(directories => {
+                        for (let d in directories) {
+                            if (d.dir_id > max_i) {
+                                max_i = d.dir_id
+                            }
+                            if (d.user == username) {
+                                console.log('failed: user directory created');
+                                return;
+                            }
+                        }
+                        max_i += 1
+                        Directory.create({
+                            dir_id: max_i,
+                            name: username,
+                            user: username,
+                            parent_id: null
+                        }).then(p => {
+                            console.log('created.' + JSON.stringify(p));
+                        });
+                    });
+            });
         } catch(err) {
             res.json({success: -1, 'msg': 'Error occurs.'});
         }
         res.redirect('signin');
->>>>>>> c0ed9a6fa1549193f2a67d409b01a5e30b1057ef
     })
 
 // Personal page
