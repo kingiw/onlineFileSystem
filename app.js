@@ -19,9 +19,20 @@ let session = require('express-session');
 let FileStore = require('session-file-store')(session);
 let identityKey = '1234567890';
 
+let Sequelize = require('sequelize');
+let sequelize = require('./dbmodels/orm');
 let User = require('./dbmodels/user');
 let Directory = require('./dbmodels/directory');
+let Files = require('./dbmodels/file');
+User.hasMany(Directory, { foreignKey: 'user' });
+User.hasMany(Files, { foreignKey: 'user' });
+Directory.belongsTo(User, { foreignKey: 'user' });
+Files.belongsTo(User, { foreignKey: 'user' });
 let FileInDirectory = require('./dbmodels/fileindirectory');
+Directory.hasMany(FileInDirectory, { foreignKey: 'dir_id' });
+FileInDirectory.belongsTo(Directory, { foreignKey: 'dir_id' });
+Files.hasMany(FileInDirectory, { foreignKey: 'file_id' });
+FileInDirectory.belongsTo(Files, { foreignKey: 'file_id' });
 let encrypt = require('./dbmodels/md5')
 
 app.use(session({
@@ -49,32 +60,6 @@ app.get('/', (req, res) => {
     let loginUser = sess.loginUser;
     let isLogin = !!loginUser;  // is loginUser undefined
     if (isLogin) {
-        Directory.findOne({
-            where: {
-                name: loginUser,
-                user: loginUser
-            }
-        }).then(homedirectory => {
-            console.log(JSON.stringify(homedirectory));
-            Directory.findAll({
-                where: {
-                    parent_id: homedirectory.dir_id
-                }
-            }).then(dir_items => {
-                FileInDirectory.findAll({
-                    where: {
-                        dir_id: homedirectory.dir_id
-                    }
-                }).then(file_items => {
-                    for (d in dir_items) {
-                        console.log(JSON.stringify(d));
-                    }
-                    for (f in dir_items) {
-                        console.log(JSON.stringify(f));
-                    }
-                });
-            });
-        });
         res.render('index', {
             username: loginUser || ''
         });
@@ -89,18 +74,19 @@ app.route('/signin')
     .get((req, res) => {
         res.render('signin');
     })
-    .post((req, res) => {
+    .post(async (req, res) => {
         let username = req.body.username;
         let password = encrypt.md5(req.body.password);
         let sess = req.session;
         
         // Judge whether it's validate
-        User.findOne({
-            where: {
-                user: username,
-                password: password
-            }
-        }).then(userInfo => {
+        try {
+            var userInfo = await User.findOne({
+                where: {
+                    user: username,
+                    password: password
+                }
+            });
             if (userInfo) {
                 req.session.regenerate(function(err) {
                     if (err) {
@@ -113,10 +99,10 @@ app.route('/signin')
             else {
                 return res.json({success: -1, msg: 'Username or password incorrect, please try again.'})
             }
-        }).catch(err => {
+        } catch (err) {
             console.log('SQL ERROR.');
             return res.json({success: -1})
-        });
+        };
     })
 
 app.route('/logout').post((req, res) => {
@@ -139,48 +125,43 @@ app.route('/signup')
         let username = req.body.username;
         let password = encrypt.md5(req.body.password);
         console.log(username, password);
-
-        try {
-
-            // Insert data to database
-            // Your code here
-            User.create({
-                user: username,
-                password: password
-            }).then(p => {
-                console.log('created.' + JSON.stringify(p));
+        sequelize.transaction(async t => {
+                // Insert data to database
+                // Your code here
+                var newuser = await User.create({
+                    user: username,
+                    password: password
+                }, {transaction: t});
+                console.log('created.' + JSON.stringify(newuser));
                 var max_i = 0
-                Directory.findAll()
-                    .then(directories => {
-                        for (let d in directories) {
-                            if (d.dir_id > max_i) {
-                                max_i = d.dir_id
-                            }
-                            if (d.user == username) {
-                                console.log('failed: user directory created');
-                                return;
-                            }
-                        }
-                        max_i += 1
-                        Directory.create({
-                            dir_id: max_i,
-                            name: username,
-                            user: username,
-                            parent_id: null
-                        }).then(p => {
-                            console.log('created.' + JSON.stringify(p));
-                        });
-                    });
-            });
-        } catch(err) {
-            res.json({success: -1, 'msg': 'Error occurs.'});
-        }
-        res.redirect('signin');
+                var directories = await Directory.findAll();
+                for (var d of directories) {
+                    if (d.dir_id > max_i) {
+                        max_i = d.dir_id
+                    }
+                    if (d.user == username) {
+                        console.log('failed: user directory created');
+                        Error;
+                    }
+                }
+                max_i += 1
+                var homedirectory = await Directory.create({
+                    dir_id: max_i,
+                    name: '/',
+                    user: username,
+                    parent_id: null
+                }, {transaction: t});
+                console.log('created.' + JSON.stringify(homedirectory));
+            }).then(p => {
+                res.redirect('signin');
+            }).catch(err => {
+                res.json({ success: -1, 'msg': 'Error occurs.' });
+            })
     })
 
 // Personal page
 app.route('/:user')
-    .get(function(req, res) {
+    .get((req, res) => {
         let user = req.session.loginUser;
         if (!user) 
             return res.redirect('signin');
@@ -192,17 +173,62 @@ app.route('/:user')
         if (!path)
             return res.redirect('/');
         try {
-            let data = function() {
+            let data = async function() {
                 // You should read the database and return the file list in *path*
                 // Your code here
-                // Your result should be a json like this:
-
+                var homedirectory = await Directory.findOne({
+                    where: {
+                        name: '/',
+                        user: user
+                    }
+                });
+                var nowdir = homedirectory.dir_id;
+                var path_dirs = path.split('/');
+                console.log(path_dirs);
+                for (let p of path_dirs) {
+                    if (p == '' || p == undefined || p == null){
+                        break;
+                    }
+                    var nextdirectory = await Directory.findOne({
+                        where: {
+                            name: p,
+                            parent_id: nowdir
+                        }
+                    })
+                    if (nextdirectory) {
+                        nowdir = nextdirectory.dir_id;
+                    }
+                    else {
+                        throw new Error();
+                    }
+                }
+                var itemlist = [];
+                var dirs = await Directory.findAll({
+                    where: {
+                        parent_id: nowdir
+                    },
+                    order: [
+                        ['name', 'ASC']
+                    ]
+                });
+                var filesindir = await FileInDirectory.findAll({
+                    where: {
+                        dir_id: nowdir
+                    },
+                    include: [Files],
+                    order: [
+                        [Sequelize.literal("File.name"), 'ASC']
+                    ]
+                });
+                for (let i of dirs) {
+                    itemlist.push({ 'path': i.name, 'type': 'dir' });
+                }
+                for (let i of filesindir) {
+                    itemlist.push({ 'path': i.name, 'type': 'file' });
+                }
                 return {
-                    list: [
-                        {'path': 'a', 'type': 'dir'},
-                        {'path': 'test.txt', 'type': 'file'}
-                    ],
-                    currentPath: '/',
+                    list: itemlist,
+                    currentPath: path,
                     owner: user,
                     Authority: 4, 
                 }
