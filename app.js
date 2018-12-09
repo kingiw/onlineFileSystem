@@ -14,6 +14,12 @@ let multer = require('multer');
 let session = require('express-session');
 let FileStore = require('session-file-store')(session);
 let identityKey = '1234567890';
+
+let User = require('./dbmodels/user');
+let Directory = require('./dbmodels/directory');
+let FileInDirectory = require('./dbmodels/fileindirectory');
+let encrypt = require('./dbmodels/md5')
+
 app.use(session({
     name: identityKey,
     secret: 'signature',    //用来对session id相关的cookie进行签名
@@ -25,15 +31,6 @@ app.use(session({
     }
 }))
 
-//--------My toy------------------
-let Users = require('./users');   // Temporarily used for test
-// let findUser = function(username, password) {
-//     return users.find(function(item) {
-//         return item.username == username && item.password === password;
-//     });
-// }
-//-----------------------------------
-
 app.use(express.static('public'));
 
 
@@ -44,6 +41,32 @@ app.get('/', (req, res) => {
     let loginUser = sess.loginUser;
     let isLogin = !!loginUser;  // is loginUser undefined
     if (isLogin) {
+        Directory.findOne({
+            where: {
+                name: loginUser,
+                user: loginUser
+            }
+        }).then(homedirectory => {
+            console.log(JSON.stringify(homedirectory));
+            Directory.findAll({
+                where: {
+                    parent_id: homedirectory.dir_id
+                }
+            }).then(dir_items => {
+                FileInDirectory.findAll({
+                    where: {
+                        dir_id: homedirectory.dir_id
+                    }
+                }).then(file_items => {
+                    for (d in dir_items) {
+                        console.log(JSON.stringify(d));
+                    }
+                    for (f in dir_items) {
+                        console.log(JSON.stringify(f));
+                    }
+                });
+            });
+        });
         res.render('index', {
             username: loginUser || ''
         });
@@ -60,32 +83,36 @@ app.route('/signin')
     })
     .post((req, res) => {
         let username = req.body.username;
-        let password = req.body.password;
+        let password = encrypt.md5(req.body.password);
         let sess = req.session;
         
         // Judge whether it's validate
-        // Your code here
-        //-------This is my toy, you should implement the similar function yourself -----
-        //-------*user* is undefined if it's not validate, or it is the username
-        let validate = Users.findUser(username, password);
-        //------------------------------------
-
-
-        if (validate) {
-            req.session.regenerate(function(err) {
-                if (err) {
-                    return res.json({success: -1})
-                }
-                req.session.loginUser = username;
-                res.redirect('/');
-            })
-        } else {
-           return res.json({success: -1})
-        }
+        User.findOne({
+            where: {
+                user: username,
+                password: password
+            }
+        }).then(userInfo => {
+            if (userInfo) {
+                req.session.regenerate(function(err) {
+                    if (err) {
+                        return res.json({success: -1})
+                    }
+                    req.session.loginUser = username;
+                    res.redirect('/');
+                })
+            }
+            else {
+                return res.json({success: -1})
+            }
+        }).catch(err => {
+            console.log('SQL ERROR.');
+            return res.json({success: -1})
+        });
     })
 
 app.route('/logout').post((req, res) => {
-    req.session.destroy(function(err) {
+    req.session.destroy(err => {
         if (err) {
             res.json({success: -1});
             return;
@@ -102,12 +129,47 @@ app.route('/signup')
     })
     .post((req, res) => {
         let username = req.body.username;
-        let password = req.body.password;
+        let password = encrypt.md5(req.body.password);
         console.log(username, password);
 
         // Insert data to database
         // Your code here
-
+        User.create({
+            user: username,
+            password: password
+        }).then(p => {
+            console.log('created.' + JSON.stringify(p));
+            var max_i = 0
+            Directory.findAll()
+                .then(directories => {
+                    for (let d in directories) {
+                        if (d.dir_id > max_i) {
+                            max_i = d.dir_id
+                        }
+                        if (d.user == username) {
+                            console.log('failed: user directory created');
+                            return;
+                        }
+                    }
+                    max_i += 1
+                    Directory.create({
+                        dir_id: max_i,
+                        name: username,
+                        user: username,
+                        parent_id: null
+                    }).then(p => {
+                        console.log('created.' + JSON.stringify(p));
+                    }).catch(err => {
+                        console.log('failed: ' + err);
+                    });
+                })
+                .catch(err => {
+                    console.log('failed: ' + err);
+                });
+        }).catch(err => {
+            console.log('failed: ' + err);
+        });
+        res.redirect('/');
     })
 
 

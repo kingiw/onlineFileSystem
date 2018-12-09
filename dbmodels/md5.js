@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+let crypto=require('crypto')
 
 module.exports = {
     md5_randomsuffix: function (){
