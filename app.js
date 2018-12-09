@@ -5,9 +5,13 @@ let bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 
-let hbs = require('hbs');
-app.set('view engine', 'html');
-app.engine('html', hbs.__express);
+let exphbs = require('express-handlebars');
+app.engine('hbs', exphbs({
+    layoutsDir: 'views',
+    defaultLayout: 'layout',
+    extname: '.hbs' 
+}));
+app.set('view engine', 'hbs');
 
 let multer = require('multer');
 
@@ -30,6 +34,10 @@ app.use(session({
         maxAge: 300 * 1000   // 有效期，单位毫秒
     }
 }))
+
+//--------My toy------------------
+let Users = require('./users');   // Temporarily used for test
+//-----------------------------------
 
 app.use(express.static('public'));
 
@@ -87,6 +95,7 @@ app.route('/signin')
         let sess = req.session;
         
         // Judge whether it's validate
+<<<<<<< HEAD
         User.findOne({
             where: {
                 user: username,
@@ -103,12 +112,32 @@ app.route('/signin')
                 })
             }
             else {
-                return res.json({success: -1})
+                return res.json({success: -1, msg: 'Username or password incorrect, please try again.'})
             }
         }).catch(err => {
             console.log('SQL ERROR.');
             return res.json({success: -1})
         });
+=======
+        // Your code here
+        //-------This is my toy, you should implement the similar function yourself -----
+        //-------*user* is undefined if it's not validate, or it is the username
+        let validate = Users.findUser(username, password);
+        //------------------------------------
+
+
+        if (validate) {
+            req.session.regenerate(function(err) {
+                if (err) {
+                    return res.json({success: -1})
+                }
+                req.session.loginUser = username;
+                res.redirect('/');
+            })
+        } else {
+           return res.json({success: -1, msg: 'Username or password incorrect, please try again.'})
+        }
+>>>>>>> c0ed9a6fa1549193f2a67d409b01a5e30b1057ef
     })
 
 app.route('/logout').post((req, res) => {
@@ -118,7 +147,7 @@ app.route('/logout').post((req, res) => {
             return;
         }
         res.clearCookie(identityKey);
-        res.redirect('/');
+        res.redirect('back');
     })
 })
 
@@ -132,6 +161,7 @@ app.route('/signup')
         let password = encrypt.md5(req.body.password);
         console.log(username, password);
 
+<<<<<<< HEAD
         // Insert data to database
         // Your code here
         User.create({
@@ -170,12 +200,72 @@ app.route('/signup')
             console.log('failed: ' + err);
         });
         res.redirect('/');
+=======
+        try {
+
+            // Insert data to database
+            // Your code here
+            
+        } catch(err) {
+            res.json({success: -1, 'msg': 'Error occurs.'});
+        }
+        res.redirect('signin');
+>>>>>>> c0ed9a6fa1549193f2a67d409b01a5e30b1057ef
+    })
+
+// Personal page
+app.route('/:user')
+    .get(function(req, res) {
+        let user = req.session.loginUser;
+        if (!user) 
+            return res.redirect('signin');
+        if (user != req.params.user)
+            return res.render('404', {
+                layout: false
+            });
+        let path = req.query.path;
+        if (!path)
+            return res.redirect('/');
+        try {
+            let data = function() {
+                // You should read the database and return the file list in *path*
+                // Your code here
+                // Your result should be a json like this:
+
+                return {
+                    list: [
+                        {'path': 'a', 'type': 'dir'},
+                        {'path': 'test.txt', 'type': 'file'}
+                    ],
+                    currentPath: '/',
+                    owner: user,
+                    Authority: 4, 
+                }
+            }();
+            return res.render('directory', data);
+        } catch(err) {
+            return res.json({success: -1, msg: 'Error occurs'});
+        }
     })
 
 
+app.route('/shared/:user')
+    .get(function(req, res) {
+        let user = req.session.loginUser;
+        if (!user) 
+            return res.redirect('signin');
+        if (user != req.params.user)
+            return res.status(404);
+        let path = req.query.path;
+        if (!path)
+            return res.redirect('/');
+
+        // I haven't done that yet
+            
+    })
 
 // Toy of loading 
-let uploading = multer({
+let upload = multer({
     dest: __dirname + '../public/uploads',
     limits: {fileSize: 1024 * 1024, files: 1},
 })
@@ -183,9 +273,29 @@ app.route('/upload')
     .get(function(req, res) {
         res.render('upload');
     })
-    .post((req, res)=> {
-        console.log('get something');
-        res.send('Done');
+    .post(upload.single('file'), (req, res)=> {
+        let file = req.file;
+        let user = req.session.loginUser;
+        if (!user)
+            return res.redirect("signin");
+        console.log(user);
+        console.log(file);
+
+        try {
+            // You should write the file to the database here
+
+
+            // Maybe the following code can help you understand:
+            // let col = await loadCollection(COLLECTION_NAME, db);
+            // let data = col.insert(file);
+            // db.saveDatabase();
+            
+        } catch(err) {
+            return res.json({success: -1, msg: 'Error occurs.'})
+        }
+
+        return res.json({success: 0});
+ 
     })
 
 app.set('port', process.env.PORT || 8080);

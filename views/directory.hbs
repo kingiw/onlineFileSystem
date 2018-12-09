@@ -1,0 +1,13 @@
+
+
+This is a directory page
+
+
+CurrentPath: {{CurrentPath}}
+{{#if list}}
+<ul>
+   {{#each list}}
+   <li>{{this.path}} {{this.type}}</li>
+   {{/each}} 
+</ul>
+{{/if}}
