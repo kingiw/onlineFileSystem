@@ -1,6 +1,6 @@
 
 ## 工具
-后端使用express.js + MySQL 前端待定
+后端使用express.js + MySQL UI框架待定
 
 
 ## 基本约定
@@ -10,23 +10,23 @@
 4. 域名约定如下:
 ```
 Index: https://domain
-Sign up: https://domain/sign_up
-Sign in: https://domain/sign_in
-Personal root directory: https://domain/[user]/home
-Any files or directories: https://domain/[user]/[Path]
-Shared files or directories: https://domain/[user]/shared/[dir_id]
+Sign up: https://domain/signup
+Sign in: https://domain/signin
+Personal root directory: https://domain/[user]
+Any files or directories: https://domain/[user]?path=[path]
+Shared files or directories: https://domain/[user]/shared?id=[dir_id]
 ```
-举例说明: Dexan上传了一个名为`1.txt`的文件到`/home/dir`文件夹下, 则该文件的路径为`/home/dir/1.txt`。kingiw分享了一个文件夹给Dexan, 则Dexan账户下访问该文件夹的方式为`https://domain/Dexan/shared/[dir_id]`, 其中`dir_id`是文件夹的主键, 下文会再阐述。
+举例说明: Dexan上传了一个名为`1.txt`的文件到`/dir`文件夹下, 则该文件的路径为`/dir/1.txt`。kingiw分享了一个文件夹给Dexan, 则Dexan账户下访问该文件夹的方式为`https://domain/Dexan/shared?id=[dir_id]`, 其中`dir_id`是文件夹的主键, 下文会再阐述。
 
 
 5. 所有用户的文件夹对每个用户状态有三种: **不可读写**, **只读**, **可写**, **所有权**。它们三者的权限分别是:
 
 |权限级别|允许动作|
 |---|---|
-|不可读写|不可访问该文件夹的所有信息|
-|只读|用户可以访问该文件夹下的所有信息, **但该文件夹下的子文件夹的访问权限由子文件夹决定**, 用户可以下载该文件夹下的所有文件。|
-|可写|包含只读权限下的所有动作, 且用户可以上传文件, 删除文件, 重命名子文件夹, **可以删除该文件夹下的子文件夹, 不管该用户对该子文件夹的权限如何**, 但不能删除该文件夹本身。|
-|所有权|包含可写权限下的所有动作, 且用户可以控制该文件夹的分享权限。|
+|不可读写(0)|不可访问该文件夹的所有信息|
+|只读(1)|用户可以访问该文件夹下的所有信息, **但该文件夹下的子文件夹的访问权限由子文件夹决定**, 用户可以下载该文件夹下的所有文件。|
+|可写(2)|包含只读权限下的所有动作, 且用户可以上传文件, 删除文件, 重命名子文件夹, **可以删除该文件夹下的子文件夹, 不管该用户对该子文件夹的权限如何**, 但不能删除该文件夹本身。|
+|所有权(3)|包含可写权限下的所有动作, 且用户可以控制该文件夹的分享权限。|
 
 
 默认每个用户对自己的所有文件夹都有所有权权限，在没有分享的情况下默认所有用户对其他用户的文件夹只有不可读写的权限。
@@ -69,6 +69,7 @@ Shared files or directories: https://domain/[user]/shared/[dir_id]
 ## 主要页面
 1. 注册
 2. 登陆
-3. 显示用户自己的文件夹(`domain/[user]/[path]`, 注意这里的path开头第一个一定是`home`)
-4. 显示用户可以访问的文件夹列表(`domain/[user]/shared/[ReadOnly/Writable]`, 两个页面中分别显示只读和可写的文件夹列表, 需要标注一下所属用户是谁。)
-5. 显示用户可以访问的文件夹内容(`domain/[user]/shared/dir_id`)。
+3. 显示用户自己的**根**文件夹(`domain/[user]?path=/`)
+4. 显示用户自己的某个文件夹(`domain/[user]?path=[path]`)
+4. 显示用户可以访问的文件夹列表(`domain/[user]/shared`)
+5. 显示用户可以访问的文件夹内容(`domain/[user]/shared?id=[dir_id]`)。
