@@ -74,30 +74,43 @@ app.route('/signin')
     .get((req, res) => {
         res.render('signin');
     })
-    .post(async (req, res) => {
+    .post((req, res) => {
         let username = req.body.username;
         let password = encrypt.md5(req.body.password);
         let sess = req.session;
         
         // Judge whether it's validate
         try {
-            var userInfo = await User.findOne({
-                where: {
-                    user: username,
-                    password: password
+            let validate = async function () {
+                var userInfo = await User.findOne({
+                    where: {
+                        user: username,
+                        password: password
+                    }
+                }).catch(err => {
+                    return null;
+                });
+                if (userInfo) {
+                    return true;
                 }
-            });
-            if (userInfo) {
-                req.session.regenerate(function(err) {
+                else {
+                    return false;
+                }
+            }();
+            if (validate == null || validate == undefined) {
+                throw new Error();
+            }
+            if (validate) {
+                req.session.regenerate(function (err) {
                     if (err) {
-                        return res.json({success: -1})
+                        return res.json({ success: -1 })
                     }
                     req.session.loginUser = username;
                     res.redirect('/');
                 })
             }
             else {
-                return res.json({success: -1, msg: 'Username or password incorrect, please try again.'})
+                return res.json({ success: -1, msg: 'Username or password incorrect, please try again.' })
             }
         } catch (err) {
             console.log('SQL ERROR.');
