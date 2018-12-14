@@ -260,7 +260,40 @@ app.route('/user/:user')
                         [Sequelize.literal("Directory.user"), 'user'],
                     ],
                     where: {
-                        name: path_dirs[path_dirs.length - 1]
+                        name: path_dirs[path_dirs.length - 1],
+                        user: user
+                    },
+                    include: [
+                        {
+                            model: DirectoryRelation,
+                            as: 'DR',
+                            attributes: [
+                                ['depth', 'depth']
+                            ],
+                            where: {
+                                depth: path_dirs.length - 1
+                            }
+                        }
+                    ],
+                    order: [
+                        [Sequelize.literal("Directory.dir_id"), 'ASC']
+                    ]
+                }).catch(err => {
+                    console.log(err);
+                    throw new Error();
+                });
+                var possibleID = [];
+                for (let i of possibleresult) {
+                    possibleID.push(i.dataValues['dir_id']);
+                }
+                possibleresult = await Directory.findAll({
+                    attributes: [
+                        [Sequelize.literal("Directory.dir_id"), 'dir_id'],
+                    ],
+                    where: {
+                        dir_id: {
+                            [Sequelize.Op.in]: possibleID
+                        }
                     },
                     include: [
                         {
@@ -281,7 +314,7 @@ app.route('/user/:user')
                         }
                     ],
                     order: [
-                        [Sequelize.literal("Directory.dir_id"), 'ASC']
+                        [Sequelize.literal("dir_id"), 'ASC']
                     ]
                 }).catch(err => {
                     console.log(err);
