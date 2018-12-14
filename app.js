@@ -18,6 +18,25 @@ let multer = require('multer');
 let session = require('express-session');
 let FileStore = require('session-file-store')(session);
 let identityKey = '1234567890';
+
+let Sequelize = require('sequelize');
+let sequelize = require('./dbmodels/orm');
+let User = require('./dbmodels/user');
+let Directory = require('./dbmodels/directory');
+let Files = require('./dbmodels/file');
+User.hasMany(Directory, { foreignKey: 'user' });
+User.hasMany(Files, { foreignKey: 'user' });
+Directory.belongsTo(User, { foreignKey: 'user' });
+Files.belongsTo(User, { foreignKey: 'user' });
+let FileInDirectory = require('./dbmodels/fileindirectory');
+Directory.hasMany(FileInDirectory, { foreignKey: 'dir_id' });
+FileInDirectory.belongsTo(Directory, { foreignKey: 'dir_id' });
+Files.hasMany(FileInDirectory, { foreignKey: 'file_id' });
+FileInDirectory.belongsTo(Files, { foreignKey: 'file_id' });
+let encrypt = require('./dbmodels/md5');
+
+let fs = require('fs');
+
 app.use(session({
     name: identityKey,
     secret: 'signature',    //用来对session id相关的cookie进行签名
@@ -57,34 +76,55 @@ app.route('/signin')
     .get((req, res) => {
         res.render('signin');
     })
-    .post((req, res) => {
+    .post(async (req, res) => {
         let username = req.body.username;
-        let password = req.body.password;
+        let password = encrypt.md5(req.body.password);
         let sess = req.session;
         
         // Judge whether it's validate
-        // Your code here
-        //-------This is my toy, you should implement the similar function yourself -----
-        //-------*user* is undefined if it's not validate, or it is the username
-        let validate = Users.findUser(username, password);
-        //------------------------------------
-
-
-        if (validate) {
-            req.session.regenerate(function(err) {
-                if (err) {
-                    return res.json({success: -1})
+        try {
+            let validate = await async function () {
+                var userInfo = await User.findOne({
+                    where: {
+                        user: username,
+                        password: password
+                    }
+                }).catch(err => {
+                    return null;
+                });
+                if (userInfo == null) {
+                    return null;
                 }
-                req.session.loginUser = username;
-                res.redirect('/');
-            })
-        } else {
-           return res.json({success: -1, msg: 'Username or password incorrect, please try again.'})
-        }
+                if (userInfo) {
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }();
+            if (validate == null || validate == undefined) {
+                throw new Error();
+            }
+            if (validate) {
+                req.session.regenerate(function (err) {
+                    if (err) {
+                        return res.json({ success: -1 })
+                    }
+                    req.session.loginUser = username;
+                    res.redirect('/');
+                })
+            }
+            else {
+                return res.json({ success: -1, msg: 'Username or password incorrect, please try again.' })
+            }
+        } catch (err) {
+            console.log(err);
+            return res.json({success: -1})
+        };
     })
 
 app.route('/logout').post((req, res) => {
-    req.session.destroy(function(err) {
+    req.session.destroy(err => {
         if (err) {
             res.json({success: -1});
             return;
@@ -101,55 +141,98 @@ app.route('/signup')
     })
     .post((req, res) => {
         let username = req.body.username;
-        let password = req.body.password;
+        let password = encrypt.md5(req.body.password);
         console.log(username, password);
-
-        try {
-
-            // Insert data to database
-            // Your code here
-            
-        } catch(err) {
-            res.json({success: -1, 'msg': 'Error occurs.'});
-        }
-        res.redirect('signin');
-    })
-
-// Personal page
-app.route('/:user')
-    .get(function(req, res) {
-        let user = req.session.loginUser;
-        if (!user) 
-            return res.redirect('signin');
-        if (user != req.params.user)
-            return res.render('404', {
-                layout: false
-            });
-        let path = req.query.path;
-        if (!path)
-            return res.redirect('/');
-        try {
-            let data = function() {
-                // You should read the database and return the file list in *path*
+        sequelize.transaction(async t => {
+                // Insert data to database
                 // Your code here
-                // Your result should be a json like this:
-
-                return {
-                    list: [
-                        {'path': 'a', 'type': 'dir'},
-                        {'path': 'test.txt', 'type': 'file'}
-                    ],
-                    currentPath: '/',
-                    owner: user,
-                    Authority: 3, 
+                var newuser = await User.create({
+                    user: username,
+                    password: password
+                }, {transaction: t});
+                console.log('created.' + JSON.stringify(newuser));
+                var max_i = 0
+                var directories = await Directory.findAll();
+                for (var d of directories) {
+                    if (d.dir_id > max_i) {
+                        max_i = d.dir_id
+                    }
+                    if (d.user == username) {
+                        console.log('failed: user directory created');
+                        Error;
+                    }
                 }
-            }();
-            return res.render('directory', data);
-        } catch(err) {
-            return res.json({success: -1, msg: 'Error occurs'});
-        }
+                max_i += 1
+                var homedirectory = await Directory.create({
+                    dir_id: max_i,
+                    name: '/',
+                    user: username,
+                    parent_id: null
+                }, {transaction: t});
+                console.log('created.' + JSON.stringify(homedirectory));
+            }).then(p => {
+                res.redirect('signin');
+            }).catch(err => {
+                res.json({ success: -1, 'msg': 'Error occurs.' });
+            })
     })
 
+// Toy of loading 
+let upload = multer({
+    dest: __dirname + '/public/uploads',
+    limits: {fileSize: 1024 * 1024, files: 1},
+})
+app.route('/upload')
+    .get((req, res) => {
+        console.log("GET /upload");
+        res.render('upload');
+    })
+    .post(upload.single('file'), (req, res)=> {
+        console.log("POST /upload");
+        let file = req.file;
+        let user = req.session.loginUser;
+        if (!user)
+            return res.redirect("signin");
+        console.log(user);
+        console.log(file);
+
+        target = {
+            name: file.originalname,
+            dir_id: 1,
+            update_time: new Date().toUTCString(),
+            user: user,
+            path: file.path,
+            size: file.size,
+        };
+        sequelize.transaction(async t => {
+            let f = fs.readFileSync(target.path);
+            var max_i = 0
+            var allfiles = await FileInDirectory.findAll();
+            for (let file of allfiles) {
+                if (file.file_id > max_i) {
+                    max_i = file.file_id
+                }
+            }
+            let newfile = await Files.create({
+                file_id: max_i + 1,
+                name: target.name,
+                update_time: target.update_time,
+                user: target.user,
+                size: target.size,
+                data: f
+            }, { transaction: t });
+            let newfile_dir = await FileInDirectory.create({
+                file_id: max_i + 1,
+                dir_id: target.dir_id
+            }, { transaction: t });
+        }).then(r => {
+            fs.unlink(target.path);
+            return res.json({success: 0});
+        }).catch(er => {
+            console.log(er);
+            return res.json({success: -1, msg: 'Error occurs.'})
+        });
+    })
 
 app.route('/shared/:user')
     .get(function(req, res) {
@@ -166,39 +249,97 @@ app.route('/shared/:user')
             
     })
 
-// Toy of loading 
-let upload = multer({
-    dest: __dirname + '../public/uploads',
-    limits: {fileSize: 1024 * 1024, files: 1},
-})
-app.route('/upload')
-    .get(function(req, res) {
-        res.render('upload');
-    })
-    .post(upload.single('file'), (req, res)=> {
-        let file = req.file;
+// Personal page
+app.route('/:user')
+    .get(async (req, res) => {
+        console.log("GET /:user");
         let user = req.session.loginUser;
-        if (!user)
-            return res.redirect("signin");
-        console.log(user);
-        console.log(file);
-
+        if (!user) 
+            return res.redirect('signin');
+        if (user != req.params.user)
+            return res.render('404', {
+                layout: false
+            });
+        let path = req.query.path;
+        if (!path)
+            return res.redirect('/');
         try {
-            // You should write the file to the database here
-
-
-            // Maybe the following code can help you understand:
-            // let col = await loadCollection(COLLECTION_NAME, db);
-            // let data = col.insert(file);
-            // db.saveDatabase();
-            
+            let data = await async function() {
+                // You should read the database and return the file list in *path*
+                // Your code here
+                var homedirectory = await Directory.findOne({
+                    where: {
+                        name: '/',
+                        user: user
+                    }
+                });
+                var nowdir = homedirectory.dir_id;
+                var path_dirs = path.split('/');
+                console.log(path_dirs);
+                for (let p of path_dirs) {
+                    if (p == '' || p == undefined || p == null){
+                        break;
+                    }
+                    var nextdirectory = await Directory.findOne({
+                        where: {
+                            name: p,
+                            parent_id: nowdir
+                        }
+                    })
+                    if (nextdirectory) {
+                        nowdir = nextdirectory.dir_id;
+                    }
+                    else {
+                        throw new Error();
+                    }
+                }
+                var itemlist = [];
+                var dirs = await Directory.findAll({
+                    attributes: ['name'],
+                    where: {
+                        parent_id: nowdir
+                    },
+                    order: [
+                        ['name', 'ASC']
+                    ]
+                });
+                var filesindir = await FileInDirectory.findAll({
+                    attributes: [
+                        'file_id',
+                        [Sequelize.literal("File.name"), 'name']
+                    ],
+                    where: {
+                        dir_id: nowdir
+                    },
+                    include: [
+                        {
+                            model: Files,
+                            attributes: ['file_id']
+                        }
+                    ],
+                    order: [
+                        [Sequelize.literal("File.name"), 'ASC']
+                    ]
+                });
+                for (let i of dirs) {
+                    itemlist.push({ 'path': i.dataValues['name'], 'type': 'dir' });
+                }
+                for (let i of filesindir) {
+                    itemlist.push({ 'path': i.dataValues['name'], 'type': 'file' });
+                }
+                return {
+                    list: itemlist,
+                    currentPath: path,
+                    owner: user,
+                    Authority: 3, 
+                }
+            }();
+            return res.render('directory', data);
         } catch(err) {
-            return res.json({success: -1, msg: 'Error occurs.'})
+            return res.json({success: -1, msg: 'Error occurs'});
         }
-
-        return res.json({success: 0});
- 
     })
+
 
 app.set('port', process.env.PORT || 8080);
 app.listen(app.get('port'));
