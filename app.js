@@ -193,6 +193,8 @@ app.route('/upload')
         let user = req.session.loginUser;
         if (!user)
             return res.redirect("signin");
+
+        // Given Path
         console.log(user);
         console.log(file);
 
@@ -234,23 +236,40 @@ app.route('/upload')
         });
     })
 
-app.route('/shared/:user')
+// Display the directories shared to current user
+// app.route('/user/shared/:owner')
+//     .get(function(req, res) {
+//         let user = req.session.loginUser;
+//         if (!user) 
+//             return res.redirect('signin');
+//         if (user != req.params.user)
+//             return res.status(404);
+//         let path = req.query.path;
+
+//         // index page of shared
+//         if (!path)
+            
+//             // Input: path, user
+
+//             // Get info of the share index page
+//             // Directory Name | Owner | Authority
+
+       
+            
+//     })
+
+
+
+// Display the directories shared to current user
+app.route('/user/shared/:user')
     .get(function(req, res) {
         let user = req.session.loginUser;
-        if (!user) 
-            return res.redirect('signin');
-        if (user != req.params.user)
-            return res.status(404);
-        let path = req.query.path;
-        if (!path)
-            return res.redirect('/');
-
-        // I haven't done that yet
-            
+        if (!user)
+            return 
     })
 
 // Personal page
-app.route('/:user')
+app.route('/user/:user')
     .get(async (req, res) => {
         console.log("GET /:user");
         let user = req.session.loginUser;
@@ -328,9 +347,11 @@ app.route('/:user')
                     itemlist.push({ 'path': i.dataValues['name'], 'type': 'file' });
                 }
                 return {
-                    list: itemlist,
-                    currentPath: path,
-                    owner: user,
+                    list: itemlist,  
+                    // [{'name': ..., 'type': ..., 'id':...}]
+                    currentPath: path, // Hotspot!!!! How to get Full path
+                    //dir_id : xxx,
+                    owner: user, // Who owns the directory
                     Authority: 3, 
                 }
             }();
@@ -339,6 +360,19 @@ app.route('/:user')
             return res.json({success: -1, msg: 'Error occurs'});
         }
     })
+
+// app.route('download')
+    // input: file_id
+    // Return: {buf: data, name: name}
+
+
+//app.route('mkdir')
+    // input: currentPath, dirName, user (Judge duplicate name)
+    // Output: success or not
+
+//app.route('authority')
+    // input: dir_id, user(owner), targetUser, authority
+    // Output: success or not
 
 
 app.set('port', process.env.PORT || 8080);

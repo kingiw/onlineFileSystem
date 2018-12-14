@@ -2,3 +2,4 @@
 /sessions/*
 /public/uploads/*
 package-lock.json
+/**/*.sql
