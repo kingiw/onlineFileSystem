@@ -7,8 +7,7 @@ module.exports = sequelize.define('Directory', {
         primaryKey: true
     },
     name: Sequelize.STRING(255),
-    user: Sequelize.STRING(255),
-    parent_id: Sequelize.INTEGER
+    user: Sequelize.STRING(255)
 }, {
         freezeTableName: true,
         timestamps: false

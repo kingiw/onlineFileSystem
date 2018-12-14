@@ -24,6 +24,11 @@ let Sequelize = require('sequelize');
 let sequelize = require('./dbmodels/orm');
 let User = require('./dbmodels/user');
 let Directory = require('./dbmodels/directory');
+let DirectoryRelation = require('./dbmodels/directoryrelation');
+Directory.hasMany(DirectoryRelation, { foreignKey: 'dir_id', as: 'DR' });
+DirectoryRelation.belongsTo(Directory, { foreignKey: 'dir_id', as: 'DR' });
+Directory.hasMany(DirectoryRelation, { foreignKey: 'ancestor', as: 'ancestorDir' });
+DirectoryRelation.belongsTo(Directory, { foreignKey: 'ancestor', as: 'ancestorDir' });
 let Files = require('./dbmodels/file');
 User.hasMany(Directory, { foreignKey: 'user' });
 User.hasMany(Files, { foreignKey: 'user' });
@@ -164,8 +169,12 @@ app.route('/signup')
                 var homedirectory = await Directory.create({
                     dir_id: max_i,
                     name: '/',
-                    user: username,
-                    parent_id: null
+                    user: username
+                }, {transaction: t});
+                var homeDR = await DirectoryRelation.create({
+                    dir_id: max_i,
+                    ancestor: max_i,
+                    depth: 0
                 }, {transaction: t});
                 console.log('created.' + JSON.stringify(homedirectory));
             }).then(p => {
@@ -235,38 +244,83 @@ app.route('/user/:user')
             let data = await async function() {
                 // You should read the database and return the file list in *path*
                 // Your code here
-                var homedirectory = await Directory.findOne({
-                    where: {
-                        name: '/',
-                        user: user
-                    }
-                });
-                var nowdir = homedirectory.dir_id;
+                var nowdir = null;
                 var path_dirs = path.split('/');
+                if (path_dirs[0] == '') {
+                    path_dirs[0] = '/';
+                }
+                if (path_dirs[path_dirs.length - 1] == '') {
+                    path_dirs.pop();
+                }
                 console.log(path_dirs);
-                for (let p of path_dirs) {
-                    if (p == '' || p == undefined || p == null){
+                var possibleresult = await Directory.findAll({
+                    attributes: [
+                        [Sequelize.literal("Directory.dir_id"), 'dir_id'],
+                        [Sequelize.literal("Directory.name"), 'name'],
+                        [Sequelize.literal("Directory.user"), 'user'],
+                    ],
+                    where: {
+                        name: path_dirs[path_dirs.length - 1]
+                    },
+                    include: [
+                        {
+                            model: DirectoryRelation,
+                            as: 'DR',
+                            attributes: [
+                                ['depth', 'depth']
+                            ],
+                            include: [
+                                {
+                                    model: Directory,
+                                    as: 'ancestorDir',
+                                    attributes: [
+                                        ['name', 'ancestor']
+                                    ],
+                                }
+                            ]
+                        }
+                    ],
+                    order: [
+                        [Sequelize.literal("Directory.dir_id"), 'ASC']
+                    ]
+                }).catch(err => {
+                    console.log(err);
+                    throw new Error();
+                });
+                var form = null;
+                var ck_i = 0;
+                for (let i of possibleresult) {
+                    if (i.dataValues['dir_id'] != form) {
+                        form = i.dataValues['dir_id'];
+                        ck_i = 0;
+                    }
+                    if (i.dataValues['DR.ancestorDir.ancestor'] == path_dirs[path_dirs.length - 1 - i.dataValues['DR.depth']]) {
+                        ck_i++;
+                    }
+                    if (ck_i >= path_dirs.length) {
+                        nowdir = form;
                         break;
                     }
-                    var nextdirectory = await Directory.findOne({
-                        where: {
-                            name: p,
-                            parent_id: nowdir
-                        }
-                    })
-                    if (nextdirectory) {
-                        nowdir = nextdirectory.dir_id;
-                    }
-                    else {
-                        throw new Error();
-                    }
+                }
+                if (nowdir == null) {
+                    throw new Error('invaild path.');
                 }
                 var itemlist = [];
                 var dirs = await Directory.findAll({
                     attributes: ['name', 'dir_id'],
-                    where: {
-                        parent_id: nowdir
-                    },
+                    include: [
+                        {
+                            model: DirectoryRelation,
+                            as: 'DR',
+                            attributes: [
+                                ['depth', 'depth']
+                            ],
+                            where: {
+                                depth: 1,
+                                ancestor: nowdir
+                            }
+                        }
+                    ],
                     order: [
                         ['name', 'ASC']
                     ]
@@ -303,7 +357,10 @@ app.route('/user/:user')
                     owner: user, // Who owns the directory
                     Authority: 3, 
                 }
-            }();
+            }().catch(err => {
+                console.log(err);
+                throw new Error();
+            });
             return res.render('directory', data);
         } catch(err) {
             return res.json({success: -1, msg: 'Error occurs'});
