@@ -3,11 +3,44 @@
 This is a directory page
 
 
+
 CurrentPath: {{CurrentPath}}
+
+<h4 class="ui horizontal divider header">
+  Info
+</h4>
 {{#if list}}
-<ul>
+<table class="ui selectable striped table">
+  <thead>
+    <tr>
+       <th>Name</th>
+       <th class="right aligned">Last Update</th>
+  </tr></thead>
+  <tbody>
    {{#each list}}
-   <li>{{this.path}} {{this.type}}</li>
-   {{/each}} 
-</ul>
+      <tr>
+         <td class="{{this.type}}">
+            <i class="{{this.icon}} icon"></i>{{this.path}}
+         </td>
+         <td class="right aligned">
+            Test
+         </td>
+      </tr>
+   {{/each}}
+  </tbody>
+</table>
+{{else}}
+<table class="ui striped table">
+   <thead>
+      <tr>
+         <th colspan="3">No files or directories!</th>
+      </tr>
+   </thead>
+</table>
 {{/if}}
+
+<form action="/upload" method="POST" enctype="multipart/form-data">
+    Select File to upload
+    <input type="file" name="file">
+    <input type="submit" value="Upload">
+</form>

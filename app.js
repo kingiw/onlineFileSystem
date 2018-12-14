@@ -13,6 +13,7 @@ app.engine('hbs', exphbs({
 }));
 app.set('view engine', 'hbs');
 
+
 let multer = require('multer');
 
 let session = require('express-session');
@@ -44,13 +45,10 @@ app.use(session({
     saveUninitialized: false,   // 是否自动保存为初始化会话
     resave: false,  //是否每次都重新保存会话
     cookie: {
-        maxAge: 300 * 1000   // 有效期，单位毫秒
+        maxAge: 3600 * 1000   // 有效期，单位毫秒
     }
 }))
 
-//--------My toy------------------
-let Users = require('./users');   // Temporarily used for test
-//-----------------------------------
 
 app.use(express.static('public'));
 
@@ -177,88 +175,39 @@ app.route('/signup')
             })
     })
 
-// Toy of loading 
-let upload = multer({
-    dest: __dirname + '/public/uploads',
-    limits: {fileSize: 1024 * 1024, files: 1},
+//To Root Directory
+app.route('/root').get((req, res) => {
+    let user = req.session.loginUser;
+    if (!user) 
+        return res.redirect('signin');
+    else
+        return res.redirect('/user/' + user);
 })
-app.route('/upload')
-    .get((req, res) => {
-        console.log("GET /upload");
-        res.render('upload');
-    })
-    .post(upload.single('file'), (req, res)=> {
-        console.log("POST /upload");
-        let file = req.file;
+
+
+/*
+Display the directories shared to current user
+app.route('/user/shared/:owner')
+    .get(function(req, res) {
         let user = req.session.loginUser;
-        if (!user)
-            return res.redirect("signin");
+        if (!user) 
+            return res.redirect('signin');
+        if (user != req.params.user)
+            return res.status(404);
+        let path = req.query.path;
 
-        // Given Path
-        console.log(user);
-        console.log(file);
-
-        target = {
-            name: file.originalname,
-            dir_id: 1,
-            update_time: new Date().toUTCString(),
-            user: user,
-            path: file.path,
-            size: file.size,
-        };
-        sequelize.transaction(async t => {
-            let f = fs.readFileSync(target.path);
-            var max_i = 0
-            var allfiles = await FileInDirectory.findAll();
-            for (let file of allfiles) {
-                if (file.file_id > max_i) {
-                    max_i = file.file_id
-                }
-            }
-            let newfile = await Files.create({
-                file_id: max_i + 1,
-                name: target.name,
-                update_time: target.update_time,
-                user: target.user,
-                size: target.size,
-                data: f
-            }, { transaction: t });
-            let newfile_dir = await FileInDirectory.create({
-                file_id: max_i + 1,
-                dir_id: target.dir_id
-            }, { transaction: t });
-        }).then(r => {
-            fs.unlink(target.path);
-            return res.json({success: 0});
-        }).catch(er => {
-            console.log(er);
-            return res.json({success: -1, msg: 'Error occurs.'})
-        });
-    })
-
-// Display the directories shared to current user
-// app.route('/user/shared/:owner')
-//     .get(function(req, res) {
-//         let user = req.session.loginUser;
-//         if (!user) 
-//             return res.redirect('signin');
-//         if (user != req.params.user)
-//             return res.status(404);
-//         let path = req.query.path;
-
-//         // index page of shared
-//         if (!path)
+        // index page of shared
+        if (!path)
             
-//             // Input: path, user
+            // Input: path, user
 
-//             // Get info of the share index page
-//             // Directory Name | Owner | Authority
+            // Get info of the share index page
+            // Directory Name | Owner | Authority
 
        
             
-//     })
-
-
+    })
+*/
 
 // Display the directories shared to current user
 app.route('/user/shared/:user')
@@ -271,17 +220,16 @@ app.route('/user/shared/:user')
 // Personal page
 app.route('/user/:user')
     .get(async (req, res) => {
-        console.log("GET /:user");
         let user = req.session.loginUser;
         if (!user) 
-            return res.redirect('signin');
+            return res.redirect('/signin');
         if (user != req.params.user)
             return res.render('404', {
                 layout: false
             });
         let path = req.query.path;
         if (!path)
-            return res.redirect('/');
+            path = '/';
         try {
             let data = await async function() {
                 // You should read the database and return the file list in *path*
@@ -341,10 +289,10 @@ app.route('/user/:user')
                     ]
                 });
                 for (let i of dirs) {
-                    itemlist.push({ 'path': i.dataValues['name'], 'type': 'dir' });
+                    itemlist.push({ 'path': i.dataValues['name'], 'type': 'dir', 'icon': 'folder' });
                 }
                 for (let i of filesindir) {
-                    itemlist.push({ 'path': i.dataValues['name'], 'type': 'file' });
+                    itemlist.push({ 'path': i.dataValues['name'], 'type': 'file', 'icon': 'file outline'});
                 }
                 return {
                     list: itemlist,  
@@ -361,9 +309,69 @@ app.route('/user/:user')
         }
     })
 
-// app.route('download')
+// loading files
+let upload = multer({
+    dest: __dirname + '/public/uploads',
+    limits: {fileSize: 1024 * 1024, files: 1},
+})
+app.route('/upload')
+    .post(upload.single('file'), (req, res)=> {
+        console.log("POST /upload");
+        let file = req.file;
+        let user = req.session.loginUser;
+        if (!user)
+            return res.redirect("signin");
+
+        // Given Path
+        console.log(user);
+        console.log(file);
+
+        target = {
+            name: file.originalname,
+            dir_id: 1,
+            update_time: new Date().toUTCString(),
+            user: user,
+            path: file.path,
+            size: file.size,
+        };
+        sequelize.transaction(async t => {
+            let f = fs.readFileSync(target.path);
+            var max_i = 0
+            var allfiles = await FileInDirectory.findAll();
+            for (let file of allfiles) {
+                if (file.file_id > max_i) {
+                    max_i = file.file_id
+                }
+            }
+            let newfile = await Files.create({
+                file_id: max_i + 1,
+                name: target.name,
+                update_time: target.update_time,
+                user: target.user,
+                size: target.size,
+                data: f
+            }, { transaction: t });
+            let newfile_dir = await FileInDirectory.create({
+                file_id: max_i + 1,
+                dir_id: target.dir_id
+            }, { transaction: t });
+        }).then(r => {
+            fs.unlink(target.path);
+            return res.json({success: 0});
+        }).catch(er => {
+            console.log(er);
+            return res.json({success: -1, msg: 'Error occurs.'})
+        });
+    })
+
+
+app.route('download')
     // input: file_id
     // Return: {buf: data, name: name}
+    let file_id = 1;
+
+    // Your code here
+
 
 
 //app.route('mkdir')
