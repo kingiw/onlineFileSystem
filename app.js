@@ -106,18 +106,18 @@ app.route('/signin')
             if (validate) {
                 req.session.regenerate(function (err) {
                     if (err) {
-                        return res.json({ success: -1 })
+                        return res.json({ success: -1, msg: 'Error occurs while regenerate session.'})
                     }
                     req.session.loginUser = username;
-                    res.redirect('/');
+                    return res.send({ success: 0 })
                 })
             }
             else {
-                return res.json({ success: -1, msg: 'Username or password incorrect, please try again.' })
+                return res.send({ success: -1, msg: 'Username or password incorrect, please try again.' })
             }
         } catch (err) {
             console.log(err);
-            return res.json({success: -1})
+            return res.send({success: -1, msg: 'Unknown error occurs!'})
         };
     })
 
@@ -169,7 +169,8 @@ app.route('/signup')
                 }, {transaction: t});
                 console.log('created.' + JSON.stringify(homedirectory));
             }).then(p => {
-                res.redirect('signin');
+                console.log("123");
+                res.json({success: 0});
             }).catch(err => {
                 res.json({ success: -1, 'msg': 'Error occurs.' });
             })
