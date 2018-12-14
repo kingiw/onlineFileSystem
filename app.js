@@ -141,7 +141,7 @@ app.route('/:user')
                     ],
                     currentPath: '/',
                     owner: user,
-                    Authority: 4, 
+                    Authority: 3, 
                 }
             }();
             return res.render('directory', data);
