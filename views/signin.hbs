@@ -1,7 +1,23 @@
-<form action="signin" method="POST">
-    This is Sign in page.
-    <br>
-    Username: <input type="text" name="username"> <br>
-    Password: <input type="text" name="password">
-    <input type="submit" value="Submit">
-</form>
+<div class="ui middle aligned center container">
+    <div class="column" style="padding-left:30%; padding-right:30%">
+        <form class="ui large form" action="signin" method="POST">
+            <div class="ui stacked segment">
+                <div class="field">
+                    <h2>Sign In</h2>
+                <div class="ui left icon input">
+                    <i class="user icon"></i>
+                    <input type="text" name="username" placeholder="Username">
+                </div>
+                </div>
+                <div class="field">
+                <div class="ui left icon input">
+                    <i class="lock icon"></i>
+                    <input type="password" name="password" placeholder="Password">
+                </div>
+                </div>
+                <div class="ui fluid large teal submit button" id="loginbtn">Sign In</div>
+            </div>
+            <div class="ui error message"></div>
+        </form>
+    </div>
+</div>
