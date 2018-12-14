@@ -88,9 +88,9 @@ app.route('/signin')
                         password: password
                     }
                 }).catch(err => {
-                    return null;
+                    return -1;
                 });
-                if (userInfo == null) {
+                if (userInfo == -1) {
                     return null;
                 }
                 if (userInfo) {
@@ -262,7 +262,7 @@ app.route('/user/:user')
                 }
                 var itemlist = [];
                 var dirs = await Directory.findAll({
-                    attributes: ['name'],
+                    attributes: ['name', 'dir_id'],
                     where: {
                         parent_id: nowdir
                     },
@@ -272,7 +272,7 @@ app.route('/user/:user')
                 });
                 var filesindir = await FileInDirectory.findAll({
                     attributes: [
-                        'file_id',
+                        ['file_id', 'file_id'],
                         [Sequelize.literal("File.name"), 'name']
                     ],
                     where: {
@@ -289,16 +289,16 @@ app.route('/user/:user')
                     ]
                 });
                 for (let i of dirs) {
-                    itemlist.push({ 'name': i.dataValues['name'], 'dir':1});
+                    itemlist.push({ 'name': i.dataValues['name'], 'dir':1, 'id':i.dataValues['dir_id']});
                 }
                 for (let i of filesindir) {
-                    itemlist.push({ 'name': i.dataValues['name'], 'file':1});
+                    itemlist.push({ 'name': i.dataValues['name'], 'file':1, 'id':i.dataValues['file_id']});
                 }
                 return {
                     list: itemlist,  
                     // [{'name': ..., 'id':...}]
                     currentPath: path, // Hotspot!!!! How to get Full path
-                    //dir_id : xxx,
+                    dir_id : nowdir,
                     owner: user, // Who owns the directory
                     Authority: 3, 
                 }
