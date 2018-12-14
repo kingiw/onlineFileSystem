@@ -1,32 +1,53 @@
 
 
-This is a directory page
+{{!-- This is a directory page
 
 
 
-CurrentPath: {{CurrentPath}}
+CurrentPath: {{CurrentPath}} --}}
 
-<h4 class="ui horizontal divider header">
-  Info
-</h4>
 {{#if list}}
 <table class="ui selectable striped table">
   <thead>
     <tr>
-       <th>Name</th>
-       <th class="right aligned">Last Update</th>
+       <th colspan="3"><span id="currentpath">{{currentPath}}</span></th>
   </tr></thead>
   <tbody>
    {{#each list}}
+
+      {{#if this.file}}
       <tr>
-         <td class="{{this.type}}">
-            <i class="{{this.icon}} icon"></i>{{this.path}}
+         <td class="file">
+            <i class="file outline icon"></i>{{this.name}}
          </td>
-         <td class="right aligned">
-            Test
+         <td>
+            Test (Update time)
+         </td>
+         <td>
+            <i class="cloud download icon" value="{{this.name}}"></i> {{!--should be rewrite to id --}}
          </td>
       </tr>
+      {{else}}
+      <tr>
+         <td class="dir">
+            <i class="folder icon"></i>{{this.name}}
+         </td>
+         <td class="right aligned">
+            Test(Update time)
+         </td>
+      </tr>
+      {{/if}}
    {{/each}}
+   <tr id="newdirtr" style="display:none;">
+      <td>
+         <div class="ui mini input">
+            <input id="newdirname" type="text" placeholder="Name...">
+         </div>
+         <i class="check icon" id="mkdirconfirm"></i>
+         <i class="close icon" id="mkdircancel"></i></td>
+      <td></td>
+      <td></td>
+   </tr>
   </tbody>
 </table>
 {{else}}
@@ -39,8 +60,17 @@ CurrentPath: {{CurrentPath}}
 </table>
 {{/if}}
 
+
+<div>
+   <button class="ui primary basic button" id="falseinput" >Select File</button>
+   <button class="ui primary basic button" id="falseupload">Upload</button>
+   <button class="ui primary basic button" id="makedirbtn">Create Directory</button>
+</div>
+<div>
+   <span id="selected_filename">You havn't select any files.</span>
+</div>
+
 <form action="/upload" method="POST" enctype="multipart/form-data">
-    Select File to upload
-    <input type="file" name="file">
-    <input type="submit" value="Upload">
+    <input id="fileinput" type="file" name="file" style="display:none;">
+    <input id="doupload" type="submit" value="Upload" style="display:none;">
 </form>

@@ -289,14 +289,14 @@ app.route('/user/:user')
                     ]
                 });
                 for (let i of dirs) {
-                    itemlist.push({ 'path': i.dataValues['name'], 'type': 'dir', 'icon': 'folder' });
+                    itemlist.push({ 'name': i.dataValues['name'], 'dir':1});
                 }
                 for (let i of filesindir) {
-                    itemlist.push({ 'path': i.dataValues['name'], 'type': 'file', 'icon': 'file outline'});
+                    itemlist.push({ 'name': i.dataValues['name'], 'file':1});
                 }
                 return {
                     list: itemlist,  
-                    // [{'name': ..., 'type': ..., 'id':...}]
+                    // [{'name': ..., 'id':...}]
                     currentPath: path, // Hotspot!!!! How to get Full path
                     //dir_id : xxx,
                     owner: user, // Who owns the directory
@@ -315,13 +315,14 @@ let upload = multer({
     limits: {fileSize: 1024 * 1024, files: 1},
 })
 app.route('/upload')
+    .get((req, res) => {
+        return res.render('upload');
+    })
     .post(upload.single('file'), (req, res)=> {
-        console.log("POST /upload");
         let file = req.file;
         let user = req.session.loginUser;
         if (!user)
             return res.redirect("signin");
-
         // Given Path
         console.log(user);
         console.log(file);
@@ -357,7 +358,8 @@ app.route('/upload')
             }, { transaction: t });
         }).then(r => {
             fs.unlink(target.path);
-            return res.json({success: 0});
+            // return res.json({success: 0});
+            res.redirect('back');
         }).catch(er => {
             console.log(er);
             return res.json({success: -1, msg: 'Error occurs.'})
@@ -374,9 +376,23 @@ app.route('download')
 
 
 
-//app.route('mkdir')
+app.route('/mkdir').post((req, res) => {
+    let dirname = req.body.dirname;
+    let path = req.body.path;
+
+    let success = false;
+    // Your code here
     // input: currentPath, dirName, user (Judge duplicate name)
     // Output: success or not
+    // You should throw a error message!
+
+    if (success) {
+        return redirect('back');
+    } else {
+        return res.send({success: -1, msg: "Error occurs."})
+    }
+})
+    
 
 //app.route('authority')
     // input: dir_id, user(owner), targetUser, authority
