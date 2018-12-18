@@ -61,7 +61,6 @@ $('#falseupload').click(function() {
 })
 
 $('#makedirbtn').click(function() {
-    console.log('...');
     $('#newdirtr').css("display", "");
 })
 

@@ -197,12 +197,14 @@ app.route('/upload')
     })
     .post(upload.single('file'), (req, res)=> {
         let file = req.file;
+        let path = req.body.path;
         let user = req.session.loginUser;
         if (!user)
             return res.redirect("signin");
         // Given Path
         console.log(user);
-        console.log(file);
+        console.log(path);
+        console.log(path);
 
         dbi.createFile(
             name=file.originalname,
