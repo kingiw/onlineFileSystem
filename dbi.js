@@ -17,6 +17,11 @@ Directory.hasMany(FileInDirectory, { foreignKey: 'dir_id' });
 FileInDirectory.belongsTo(Directory, { foreignKey: 'dir_id' });
 Files.hasMany(FileInDirectory, { foreignKey: 'file_id' });
 FileInDirectory.belongsTo(Files, { foreignKey: 'file_id' });
+let Privilege = require('./dbmodels/privilege');
+User.hasMany(Privilege, { foreignKey: 'user' });
+Privilege.belongsTo(User, { foreignKey: 'user' });
+Directory.hasMany(Privilege, { foreignKey: 'dir_id' });
+Privilege.belongsTo(Directory, { foreignKey: 'dir_id' });
 
 let fs = require('fs');
 
@@ -154,7 +159,9 @@ module.exports = {
             }, {transaction: t});
             console.log('created.' + JSON.stringify(newuser));
             var max_i = 0
-            var directories = await Directory.findAll();
+            var directories = await Directory.findAll({
+                transaction: t
+            });
             for (var d of directories) {
                 if (d.dir_id > max_i) {
                     max_i = d.dir_id
@@ -255,7 +262,9 @@ module.exports = {
             let f = fs.readFileSync(path);
             var max_i = 0
             var dir_id = await pathTodirID(dir_path, user);
-            var allfiles = await FileInDirectory.findAll();
+            var allfiles = await FileInDirectory.findAll({
+                transaction: t
+            });
             for (let file of allfiles) {
                 if (file.file_id > max_i) {
                     max_i = file.file_id
@@ -315,7 +324,8 @@ module.exports = {
                             ancestor: nowdir
                         }
                     }
-                ]
+                ],
+                transaction: t
             })
             if (result) {
                 throw new Error('duplicate name.');
@@ -334,26 +344,104 @@ module.exports = {
             result = await DirectoryRelation.findAll({
                 where: {
                     dir_id: nowdir
-                }
+                },
+                transaction: t
             });
             for (let i of result) {
-                DirectoryRelation.create({
+                await DirectoryRelation.create({
                     dir_id: max_i,
                     ancestor: i.ancestor,
                     depth: i.depth + 1
-                });
+                }, { transaction: t });
             }
-            DirectoryRelation.create({
+            await DirectoryRelation.create({
                 dir_id: max_i,
                 ancestor: max_i,
                 depth: 0
-            });
+            }, { transaction: t });
         }).catch(err => {
             status = -1;
             msg = err.message;
         });
         return {
             success: status,
+            msg: msg
+        }
+    },
+
+    updateAuthority: async function (dir_id, user, targetUser, authority) {
+        var status = 0;
+        var msg = null;
+        await sequelize.transaction(async t => {
+            var ck_exist = await Privilege.findAll({
+                where: {
+                    dir_id: dir_id
+                }
+            })
+            var opc = true;
+            if (ck_exist) {
+                var hostPriv = 0, targetPriv = 0;
+                for (let i of ck_exist) {
+                    if (i.user == user)
+                        hostPriv = i.priv;
+                    if (i.user == targetUser)
+                        targetPriv = i.priv;
+                }
+                if (hostPriv < 3)
+                    throw new Error('Permission denied.');
+                else {
+                    if (targetPriv > 0)
+                        opc = false;
+                }
+            }
+            if (opc) {
+                await Privilege.create({
+                    user: user,
+                    dir_id: dir_id,
+                    priv: authority
+                });
+            }
+            else {
+                await Privilege.update(
+                    {
+                        priv: authority
+                    },
+                    {
+                        where: {
+                            user: targetUser,
+                            dir_id: dir_id
+                        },
+                        transaction: t
+                    }
+                );
+            }
+        }).catch(err => {
+            status = -1;
+            msg = err.message;
+        })
+        return {
+            success: status,
+            msg: msg
+        }
+    },
+
+    checkAuthority: async function (dir_id, user) {
+        var status = 0;
+        var msg = null;
+        let ck_exist = await Privilege.findOne({
+            where: {
+                dir_id: dir_id,
+                user: user
+            }
+        }).catch(err => {
+            status = -1;
+            msg = err.message;
+        });
+        if (status == 0 && ck_exist) {
+            status = ck_exist.priv;
+        }
+        return {
+            authority: status,
             msg: msg
         }
     },
