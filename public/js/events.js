@@ -76,6 +76,8 @@ $('#mkdirconfirm').click(function() {
         },
         success: function(data) {
             console.log(data);
+            if (data.success == 0)
+                location.reload();
         },
         dataType: "json",
     });

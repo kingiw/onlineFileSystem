@@ -259,7 +259,7 @@ app.route('/mkdir').post(async (req, res) => {
     // You should throw a error message!
     dbi.makedirectory(dirname, path, user)
         .then(p => {
-            res.redirect('back');
+            return res.send({success: 0});
         }).catch(err => {
             console.log(err)
             return res.send({ success: -1, msg: err.message })
