@@ -20,124 +20,130 @@ FileInDirectory.belongsTo(Files, { foreignKey: 'file_id' });
 
 let fs = require('fs');
 
-module.exports = {
-    pathTodirID: async function (path, user) {
-        var path_dirs = path.split('/');
-        if (path_dirs[0] == '') {
-            path_dirs[0] = '/';
-        }
-        if (path_dirs[path_dirs.length - 1] == '') {
-            path_dirs.pop();
-        }
-        console.log(path_dirs);
-        var possibleresult = await Directory.findAll({
-            attributes: [
-                [Sequelize.literal("Directory.dir_id"), 'dir_id'],
-                [Sequelize.literal("Directory.name"), 'name'],
-                [Sequelize.literal("Directory.user"), 'user'],
-            ],
-            where: {
-                name: path_dirs[path_dirs.length - 1],
-                user: user
-            },
-            include: [
-                {
-                    model: DirectoryRelation,
-                    as: 'DR',
-                    attributes: [
-                        ['depth', 'depth']
-                    ],
-                    where: {
-                        depth: path_dirs.length - 1
+async function pathTodirID(path, user) {
+    var tmppath = path;
+    if (!tmppath)
+        tmppath = '/';
+    if (tmppath[0] != '/')
+        tmppath = '/' + tmppath;
+    var path_dirs = tmppath.split('/');
+    if (path_dirs[0] == '') {
+        path_dirs[0] = '/';
+    }
+    if (path_dirs[path_dirs.length - 1] == '') {
+        path_dirs.pop();
+    }
+    console.log(path_dirs);
+    var possibleresult = await Directory.findAll({
+        attributes: [
+            [Sequelize.literal("Directory.dir_id"), 'dir_id'],
+            [Sequelize.literal("Directory.name"), 'name'],
+            [Sequelize.literal("Directory.user"), 'user'],
+        ],
+        where: {
+            name: path_dirs[path_dirs.length - 1],
+            user: user
+        },
+        include: [
+            {
+                model: DirectoryRelation,
+                as: 'DR',
+                attributes: [
+                    ['depth', 'depth']
+                ],
+                where: {
+                    depth: path_dirs.length - 1
+                }
+            }
+        ],
+        order: [
+            [Sequelize.literal("Directory.dir_id"), 'ASC']
+        ]
+    }).catch(err => {
+        console.log(err);
+        throw new Error();
+    });
+    var possibleID = [];
+    for (let i of possibleresult) {
+        possibleID.push(i.dataValues['dir_id']);
+    }
+    possibleresult = await Directory.findAll({
+        attributes: [
+            [Sequelize.literal("Directory.dir_id"), 'dir_id'],
+        ],
+        where: {
+            dir_id: {
+                [Sequelize.Op.in]: possibleID
+            }
+        },
+        include: [
+            {
+                model: DirectoryRelation,
+                as: 'DR',
+                attributes: [
+                    ['depth', 'depth']
+                ],
+                include: [
+                    {
+                        model: Directory,
+                        as: 'ancestorDir',
+                        attributes: [
+                            ['name', 'ancestor']
+                        ],
                     }
-                }
-            ],
-            order: [
-                [Sequelize.literal("Directory.dir_id"), 'ASC']
-            ]
-        }).catch(err => {
-            console.log(err);
-            throw new Error();
-        });
-        var possibleID = [];
-        for (let i of possibleresult) {
-            possibleID.push(i.dataValues['dir_id']);
-        }
-        possibleresult = await Directory.findAll({
-            attributes: [
-                [Sequelize.literal("Directory.dir_id"), 'dir_id'],
-            ],
-            where: {
-                dir_id: {
-                    [Sequelize.Op.in]: possibleID
-                }
-            },
-            include: [
-                {
-                    model: DirectoryRelation,
-                    as: 'DR',
-                    attributes: [
-                        ['depth', 'depth']
-                    ],
-                    include: [
-                        {
-                            model: Directory,
-                            as: 'ancestorDir',
-                            attributes: [
-                                ['name', 'ancestor']
-                            ],
-                        }
-                    ]
-                }
-            ],
-            order: [
-                [Sequelize.literal("dir_id"), 'ASC']
-            ]
-        }).catch(err => {
-            console.log(err);
-            throw new Error();
-        });
-        for (let i of possibleresult) {
-            var ck_i = 0;
-            if (i.DR.length < path_dirs.length)
-                continue;
-            for (let j of i.DR) {
-                if (j.ancestorDir.dataValues['ancestor'] == path_dirs[path_dirs.length - 1 - j.depth]) {
-                    ck_i++;
-                }
-                else {
-                    break;
-                }
+                ]
             }
-            if (ck_i >= path_dirs.length) {
-                return i.dir_id;
+        ],
+        order: [
+            [Sequelize.literal("dir_id"), 'ASC']
+        ]
+    }).catch(err => {
+        console.log(err);
+        throw new Error();
+    });
+    for (let i of possibleresult) {
+        var ck_i = 0;
+        if (i.DR.length < path_dirs.length)
+            continue;
+        for (let j of i.DR) {
+            if (j.ancestorDir.dataValues['ancestor'] == path_dirs[path_dirs.length - 1 - j.depth]) {
+                ck_i++;
+            }
+            else {
+                break;
             }
         }
-        return null;
-    },
+        if (ck_i >= path_dirs.length) {
+            return i.dir_id;
+        }
+    }
+    return null;
+}
 
+module.exports = {
     validateUser: async function (username, password) {
+        var msg = null, status = 0;
         var userInfo = await User.findOne({
             where: {
                 user: username,
                 password: password
             }
         }).catch(err => {
-            return -1;
+            status = -1;
+            msg = err.message;
         });
-        if (userInfo == -1) {
-            return null;
+        if (!userInfo) {
+            status = -1;
+            msg = 'Username or password incorrect, please try again.';
         }
-        if (userInfo) {
-            return true;
-        }
-        else {
-            return false;
+        return {
+            success: status,
+            msg: msg
         }
     },
 
     createUser: async function (username, password) {
-        var ck = null;
+        var status = 0;
         var msg = null;
         await sequelize.transaction(async t => {
             // Insert data to database
@@ -170,20 +176,21 @@ module.exports = {
                 depth: 0
             }, {transaction: t});
             console.log('created.' + JSON.stringify(homedirectory));
-        }).then(p => {
-            ck = true;
         }).catch(err => {
-            ck = false;
+            status = -1;
             msg = err.message;
         })
-        if (ck) {
-            return ck;
+        return {
+            success: status,
+            msg: msg
         }
-        throw new Error(msg);
     },
 
     findAllItemInDir: async function (path, user) {
-        var nowdir = await this.pathTodirID(path, user);
+        var tmppath = path;
+        if (!tmppath)
+            tmppath = '/';
+        var nowdir = await pathTodirID(tmppath, user);
         if (nowdir == null) {
             throw new Error('invaild path.');
         }
@@ -234,18 +241,20 @@ module.exports = {
         return {
             list: itemlist,  
             // [{'name': ..., 'id':...}]
-            currentPath: path, // Hotspot!!!! How to get Full path
+            currentPath: tmppath, // Hotspot!!!! How to get Full path
             dir_id : nowdir,
             owner: user, // Who owns the directory
             Authority: 3, 
         }
     },
 
-    createFile: async function (name, dir_id, update_time, user, path, size) {
+    createFile: async function (name, dir_path, update_time, user, path, size) {
+        var status = 0;
         var msg = null;
         await sequelize.transaction(async t => {
             let f = fs.readFileSync(path);
             var max_i = 0
+            var dir_id = await pathTodirID(dir_path, user);
             var allfiles = await FileInDirectory.findAll();
             for (let file of allfiles) {
                 if (file.file_id > max_i) {
@@ -267,26 +276,30 @@ module.exports = {
         }).then(r => {
             fs.unlink(path);
         }).catch(err => {
+            status = -1;
             msg = err.message;
         });
-        if (msg) {
-            throw new Error(msg);
+        return {
+            success: status,
+            msg: msg
         }
-        return true;
     },
 
     makedirectory: async function (dirname, path, user) {
+        var status = 0;
         var msg = null;
         await sequelize.transaction(async t => {
             if (dirname == '' || dirname.includes('/')) {
                 throw new Error('invaild dirname.');
             }
-            var nowdir = await this.pathTodirID(path, user);
+            var nowdir = await pathTodirID(path, user);
             if (nowdir == null) {
                 throw new Error('invaild path.');
             }
             var result = await Directory.findOne({
-                attributes: ['name'],
+                attributes: [
+                    ['name', 'name']
+                ],
                 where: {
                     name: dirname
                 },
@@ -336,11 +349,12 @@ module.exports = {
                 depth: 0
             });
         }).catch(err => {
+            status = -1;
             msg = err.message;
         });
-        if (msg) {
-            throw new Error(msg);
+        return {
+            success: status,
+            msg: msg
         }
-        return true;
     },
 }

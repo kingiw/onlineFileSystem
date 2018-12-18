@@ -65,27 +65,18 @@ app.route('/signin')
         let sess = req.session;
         
         // Judge whether it's validate
-        try {
-            let validate = await dbi.validateUser(username, password);
-            if (validate == null || validate == undefined) {
-                throw new Error('SQL Engine Error');
-            }
-            if (validate) {
-                req.session.regenerate(function (err) {
-                    if (err) {
-                        return res.json({ success: -1, msg: 'Error occurs while regenerate session.'})
-                    }
-                    req.session.loginUser = username;
-                    return res.send({ success: 0 })
-                })
-            }
-            else {
-                throw new Error('Username or password incorrect, please try again.');
-            }
-        } catch (err) {
-            console.log(err);
-            return res.send({success: -1, msg: err.message})
-        };
+        let validate = await dbi.validateUser(username, password);
+        if (validate.success == 0) {
+            req.session.regenerate(function (err) {
+                if (err) {
+                    return res.json({ success: -1, msg: 'Error occurs while regenerate session.'})
+                }
+                req.session.loginUser = username;
+                return res.send({ success: 0 })
+            })
+        }
+        else
+            return res.send(validate);
     })
 
 app.route('/logout').post((req, res) => {
@@ -104,15 +95,10 @@ app.route('/signup')
     .get((req, res) => {
         res.render('signup');
     })
-    .post((req, res) => {
+    .post(async (req, res) => {
         let username = req.body.username;
         let password = encrypt.md5(req.body.password);
-        dbi.createUser(username, password)
-            .then(p => {
-                res.json({success: 0});
-            }).catch(err => {
-                res.json({ success: -1, msg: err.message });
-            })
+        return res.json(await dbi.createUser(username, password));
     })
 
 //To Root Directory
@@ -168,10 +154,6 @@ app.route('/user/:user')
                 layout: false
             });
         let path = req.query.path;
-        if (!path)
-            path = '/';
-        if (path[0] != '/')
-            path = '/' + path;
         try {
             var msg = null;
             let data = await dbi.findAllItemInDir(path, user)
@@ -197,7 +179,7 @@ app.route('/upload')
     .get((req, res) => {
         return res.render('upload');
     })
-    .post(upload.single('file'), (req, res)=> {
+    .post(upload.single('file'), async (req, res)=> {
         let file = req.file;
         let path = req.body.path;
         let user = req.session.loginUser;
@@ -208,20 +190,17 @@ app.route('/upload')
         console.log(path);
         console.log(path);
 
-        dbi.createFile(
+        var status=await dbi.createFile(
             name=file.originalname,
-            dir_id=1,
+            dir_path=path,
             update_time=new Date().toUTCString(),
             user=user,
             path=file.path,
             size=file.size
-        ).then(r => {
-            // return res.json({success: 0});
+        )
+        if (status.success == 0)
             res.redirect('back');
-        }).catch(err => {
-            console.log(err);
-            return res.json({success: -1, msg: err.message})
-        });
+        return res.json(status)
     })
 
 
@@ -259,13 +238,7 @@ app.route('/mkdir').post(async (req, res) => {
     // input: currentPath, dirName, user (Judge duplicate name)
     // Output: success or not
     // You should throw a error message!
-    dbi.makedirectory(dirname, path, user)
-        .then(p => {
-            return res.send({success: 0});
-        }).catch(err => {
-            console.log(err)
-            return res.send({ success: -1, msg: err.message })
-        });
+    return res.send(await dbi.makedirectory(dirname, path, user))
 })
     
 
