@@ -89,3 +89,11 @@ $('#mkdircancel').click(function() {
 $(".file").click(() => {
     console.log($(this).text());
 })
+
+
+$('.dir').click(function() {
+    let currentPath = $('#currentpath').text().slice(1,);
+    let dirname = $(this).children(":first").text().trim();
+    let username = window.location.pathname.split('/').slice(-1)[0];
+    window.location.href = username + '?path=' + currentPath + '/' + dirname;
+})

@@ -6,8 +6,8 @@
 
 CurrentPath: {{CurrentPath}} --}}
 
-{{#if list}}
 <table class="ui selectable striped table">
+{{#if list}}
   <thead>
     <tr>
        <th colspan="3"><span id="currentpath">{{currentPath}}</span></th>
@@ -28,8 +28,8 @@ CurrentPath: {{CurrentPath}} --}}
          </td>
       </tr>
       {{else}}
-      <tr>
-         <td class="dir">
+      <tr class="dir">
+         <td>
             <i class="folder icon"></i>{{this.name}}
          </td>
          <td class="right aligned">
@@ -38,6 +38,13 @@ CurrentPath: {{CurrentPath}} --}}
       </tr>
       {{/if}}
    {{/each}}
+{{else}}
+   <thead>
+      <tr>
+         <th colspan="3">No files or directories!</th>
+      </tr>
+   </thead>
+{{/if}}
    <tr id="newdirtr" style="display:none;">
       <td>
          <div class="ui mini input">
@@ -50,15 +57,6 @@ CurrentPath: {{CurrentPath}} --}}
    </tr>
   </tbody>
 </table>
-{{else}}
-<table class="ui striped table">
-   <thead>
-      <tr>
-         <th colspan="3">No files or directories!</th>
-      </tr>
-   </thead>
-</table>
-{{/if}}
 
 
 <div>
