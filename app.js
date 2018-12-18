@@ -208,7 +208,7 @@ app.route('/upload')
 
         dbi.createFile(
             name=file.originalname,
-            dir_id=1,
+            dir_path=path,
             update_time=new Date().toUTCString(),
             user=user,
             path=file.path,

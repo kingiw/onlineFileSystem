@@ -241,11 +241,12 @@ module.exports = {
         }
     },
 
-    createFile: async function (name, dir_id, update_time, user, path, size) {
+    createFile: async function (name, dir_path, update_time, user, path, size) {
         var msg = null;
         await sequelize.transaction(async t => {
             let f = fs.readFileSync(path);
             var max_i = 0
+            var dir_id = await this.pathTodirID(dir_path, user);
             var allfiles = await FileInDirectory.findAll();
             for (let file of allfiles) {
                 if (file.file_id > max_i) {
@@ -286,7 +287,9 @@ module.exports = {
                 throw new Error('invaild path.');
             }
             var result = await Directory.findOne({
-                attributes: ['name'],
+                attributes: [
+                    ['name', 'name']
+                ],
                 where: {
                     name: dirname
                 },
