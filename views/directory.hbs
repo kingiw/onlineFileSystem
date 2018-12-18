@@ -1,17 +1,12 @@
 
 
-{{!-- This is a directory page
-
-
-
-CurrentPath: {{CurrentPath}} --}}
-
 <table class="ui selectable striped table">
-{{#if list}}
-  <thead>
+   <thead>
     <tr>
        <th colspan="3"><span id="currentpath">{{currentPath}}</span></th>
   </tr></thead>
+{{#if list}}
+  
   <tbody>
    {{#each list}}
 
@@ -36,17 +31,17 @@ CurrentPath: {{CurrentPath}} --}}
             Test(Update time)
          </td>
          <td>
-            
+
          </td>
       </tr>
       {{/if}}
    {{/each}}
 {{else}}
-   <thead>
+   <tbody>
       <tr>
-         <th colspan="3">No files or directories!</th>
+         <td>No files or directories!</td>
       </tr>
-   </thead>
+   </tbody>
 {{/if}}
    <tr id="newdirtr" style="display:none;">
       <td>

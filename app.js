@@ -170,6 +170,8 @@ app.route('/user/:user')
         let path = req.query.path;
         if (!path)
             path = '/';
+        if (path[0] != '/')
+            path = '/' + path;
         try {
             var msg = null;
             let data = await dbi.findAllItemInDir(path, user)
