@@ -187,7 +187,10 @@ module.exports = {
     },
 
     findAllItemInDir: async function (path, user) {
-        var nowdir = await pathTodirID(path, user);
+        var tmppath = path;
+        if (!tmppath)
+            tmppath = '/';
+        var nowdir = await pathTodirID(tmppath, user);
         if (nowdir == null) {
             throw new Error('invaild path.');
         }
@@ -238,7 +241,7 @@ module.exports = {
         return {
             list: itemlist,  
             // [{'name': ..., 'id':...}]
-            currentPath: path, // Hotspot!!!! How to get Full path
+            currentPath: tmppath, // Hotspot!!!! How to get Full path
             dir_id : nowdir,
             owner: user, // Who owns the directory
             Authority: 3, 
