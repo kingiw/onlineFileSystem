@@ -25,6 +25,12 @@ Privilege.belongsTo(Directory, { foreignKey: 'dir_id' });
 
 let fs = require('fs');
 
+function fixpath(path) {
+    if (!path || path == '')
+        return '/';
+    return path;
+}
+
 async function pathTodirID(path, user) {
     var tmppath = path;
     if (!tmppath)
@@ -38,7 +44,6 @@ async function pathTodirID(path, user) {
     if (path_dirs[path_dirs.length - 1] == '') {
         path_dirs.pop();
     }
-    console.log(path_dirs);
     var possibleresult = await Directory.findAll({
         attributes: [
             [Sequelize.literal("Directory.dir_id"), 'dir_id'],
@@ -65,8 +70,7 @@ async function pathTodirID(path, user) {
             [Sequelize.literal("Directory.dir_id"), 'ASC']
         ]
     }).catch(err => {
-        console.log(err);
-        throw new Error();
+        throw new Error(err.message);
     });
     var possibleID = [];
     for (let i of possibleresult) {
@@ -103,8 +107,7 @@ async function pathTodirID(path, user) {
             [Sequelize.literal("dir_id"), 'ASC']
         ]
     }).catch(err => {
-        console.log(err);
-        throw new Error();
+        throw new Error(err.message);
     });
     for (let i of possibleresult) {
         var ck_i = 0;
@@ -123,6 +126,52 @@ async function pathTodirID(path, user) {
         }
     }
     return null;
+}
+
+async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) {
+    var ck_exist = await Privilege.findAll({
+        where: {
+            dir_id: dir_id
+        },
+        transaction: tran
+    })
+    var opc = true;
+    if (ck_exist && ck_exist.length > 0) {
+        var hostPriv = 0, targetPriv = 0;
+        for (let i of ck_exist) {
+            if (i.user == user)
+                hostPriv = i.priv;
+            if (i.user == targetUser)
+                targetPriv = i.priv;
+        }
+        if (hostPriv < 3)
+            throw new Error('Permission denied.');
+        else {
+            if (targetPriv > 0)
+                opc = false;
+        }
+    }
+    if (opc) {
+        await Privilege.create({
+            user: user,
+            dir_id: dir_id,
+            priv: authority
+        }, { transaction: tran });
+    }
+    else {
+        await Privilege.update(
+            {
+                priv: authority
+            },
+            {
+                where: {
+                    user: targetUser,
+                    dir_id: dir_id
+                },
+                transaction: tran
+            }
+        );
+    }
 }
 
 module.exports = {
@@ -158,20 +207,11 @@ module.exports = {
                 password: password
             }, {transaction: t});
             console.log('created.' + JSON.stringify(newuser));
-            var max_i = 0
-            var directories = await Directory.findAll({
+            let result = await Directory.findOne({
+                attributes: [[sequelize.fn('MAX', sequelize.col('dir_id')), 'dir_id']],
                 transaction: t
-            });
-            for (var d of directories) {
-                if (d.dir_id > max_i) {
-                    max_i = d.dir_id
-                }
-                if (d.user == username) {
-                    console.log('failed: user directory created');
-                    Error;
-                }
-            }
-            max_i += 1
+            })
+            var max_i = result.dir_id + 1;
             var homedirectory = await Directory.create({
                 dir_id: max_i,
                 name: '/',
@@ -181,7 +221,10 @@ module.exports = {
                 dir_id: max_i,
                 ancestor: max_i,
                 depth: 0
-            }, {transaction: t});
+            }, { transaction: t });
+            await updateAuthorityInTran(max_i, username, username, 3, t).catch(err => {
+                throw new Error('Failed to set authority!');
+            });
             console.log('created.' + JSON.stringify(homedirectory));
         }).catch(err => {
             status = -1;
@@ -194,9 +237,7 @@ module.exports = {
     },
 
     findAllItemInDir: async function (path, user) {
-        var tmppath = path;
-        if (!tmppath)
-            tmppath = '/';
+        var tmppath = fixpath(path);
         var nowdir = await pathTodirID(tmppath, user);
         if (nowdir == null) {
             throw new Error('invaild path.');
@@ -223,6 +264,7 @@ module.exports = {
         var filesindir = await FileInDirectory.findAll({
             attributes: [
                 ['file_id', 'file_id'],
+                [Sequelize.literal("File.update_time"), 'update_time'],
                 [Sequelize.literal("File.name"), 'name']
             ],
             where: {
@@ -243,7 +285,7 @@ module.exports = {
             itemlist.push({ 'name': i.dataValues['name'], 'dir':1, 'id':i.dataValues['dir_id']});
         }
         for (let i of filesindir) {
-            itemlist.push({ 'name': i.dataValues['name'], 'file':1, 'id':i.dataValues['file_id']});
+            itemlist.push({ 'name': i.dataValues['name'], 'time': i.dataValues['update_time'], 'file': 1, 'id': i.dataValues['file_id'] });
         }
         return {
             list: itemlist,  
@@ -260,18 +302,14 @@ module.exports = {
         var msg = null;
         await sequelize.transaction(async t => {
             let f = fs.readFileSync(path);
-            var max_i = 0
             var dir_id = await pathTodirID(dir_path, user);
-            var allfiles = await FileInDirectory.findAll({
+            let result = await FileInDirectory.findOne({
+                attributes: [[sequelize.fn('MAX', sequelize.col('file_id')), 'file_id']],
                 transaction: t
-            });
-            for (let file of allfiles) {
-                if (file.file_id > max_i) {
-                    max_i = file.file_id
-                }
-            }
+            })
+            var max_i = result.file_id + 1;
             let newfile = await Files.create({
-                file_id: max_i + 1,
+                file_id: max_i,
                 name: name,
                 update_time: update_time,
                 user: user,
@@ -279,7 +317,7 @@ module.exports = {
                 data: f
             }, { transaction: t });
             let newfile_dir = await FileInDirectory.create({
-                file_id: max_i + 1,
+                file_id: max_i,
                 dir_id: dir_id
             }, { transaction: t });
         }).then(r => {
@@ -331,11 +369,10 @@ module.exports = {
                 throw new Error('duplicate name.');
             }
             result = await Directory.findOne({
-                attributes: [[sequelize.fn('MAX', sequelize.col('dir_id')), 'dir_id']]
+                attributes: [[sequelize.fn('MAX', sequelize.col('dir_id')), 'dir_id']],
+                transaction: t
             })
-            var max_i = result.dir_id;
-            console.log(max_i);
-            max_i = max_i + 1;
+            var max_i = result.dir_id + 1;
             await Directory.create({
                 dir_id: max_i,
                 name: dirname,
@@ -359,7 +396,11 @@ module.exports = {
                 ancestor: max_i,
                 depth: 0
             }, { transaction: t });
+            await updateAuthorityInTran(max_i, user, user, 3, t).catch(err => {
+                throw new Error('Failed to set authority!');
+            });
         }).catch(err => {
+            console.log(err);
             status = -1;
             msg = err.message;
         });
@@ -373,49 +414,9 @@ module.exports = {
         var status = 0;
         var msg = null;
         await sequelize.transaction(async t => {
-            var ck_exist = await Privilege.findAll({
-                where: {
-                    dir_id: dir_id
-                }
-            })
-            var opc = true;
-            if (ck_exist) {
-                var hostPriv = 0, targetPriv = 0;
-                for (let i of ck_exist) {
-                    if (i.user == user)
-                        hostPriv = i.priv;
-                    if (i.user == targetUser)
-                        targetPriv = i.priv;
-                }
-                if (hostPriv < 3)
-                    throw new Error('Permission denied.');
-                else {
-                    if (targetPriv > 0)
-                        opc = false;
-                }
-            }
-            if (opc) {
-                await Privilege.create({
-                    user: user,
-                    dir_id: dir_id,
-                    priv: authority
-                });
-            }
-            else {
-                await Privilege.update(
-                    {
-                        priv: authority
-                    },
-                    {
-                        where: {
-                            user: targetUser,
-                            dir_id: dir_id
-                        },
-                        transaction: t
-                    }
-                );
-            }
+            await updateAuthorityInTran(dir_id, user, targetUser, authority, t);
         }).catch(err => {
+            console.log(err);
             status = -1;
             msg = err.message;
         })
@@ -444,5 +445,48 @@ module.exports = {
             authority: status,
             msg: msg
         }
+    },
+
+    getAuthority: async function (path, user) {
+        var status = 0;
+        var msg = null;
+        var tmppath = fixpath(path);
+        var dir_id = await pathTodirID(tmppath, user).catch(err => {
+            status = -1;
+            msg = err.message;
+        });
+        if (status == 0) {
+            var poi = []
+            let ck = await this.checkAuthority(dir_id, user);
+            if (ck.authority < 3) {
+                status = -1;
+                msg = 'Permission denied.';
+            }
+            if (status == 0) {
+                let alllist = await Privilege.findAll({
+                    attributes: [
+                        'user', 'priv'
+                    ],
+                    where: {
+                        dir_id: dir_id
+                    },
+                    order: [
+                        ['priv', 'DESC']
+                    ]
+                }).catch(err => {
+                    status = -1;
+                    msg = err.message;
+                });
+                if (status == 0) {
+                    for (let i of alllist) {
+                        poi.push({
+                            user: i.user,
+                            authority: i.priv
+                        })
+                    }
+                }
+            }
+        }
+        return { success: status, msg: msg, list: poi, currentPath: tmppath };
     },
 }

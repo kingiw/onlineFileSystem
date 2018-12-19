@@ -255,21 +255,16 @@ app.route('/mkdir').post(async (req, res) => {
 })
     
 
-app.route('/user/manage/:user').get((req, res) => {
-    let dir_id = req.body.dir_id;
+app.route('/user/manage/:user').get(async (req, res) => {
+    let path = req.query.path;
     let user = req.session.loginUser;
     console.log(user);
     // Return a list of authority list 
     // Just like this:
-    data = {
-        // Authority level
-        // 1: read only
-        // 2: writable
-        list:[
-            {user: '123', authority: '1'},
-            {user: '234', authority: '2'},
-        ]
-    }
+    // Authority level
+    // 1: read only
+    // 2: writable
+    data = await dbi.getAuthority(path, user);
     res.render('manage', data);
 })
 
