@@ -65,27 +65,18 @@ app.route('/signin')
         let sess = req.session;
         
         // Judge whether it's validate
-        try {
-            let validate = await dbi.validateUser(username, password);
-            if (validate == null || validate == undefined) {
-                throw new Error('SQL Engine Error');
-            }
-            if (validate) {
-                req.session.regenerate(function (err) {
-                    if (err) {
-                        return res.json({ success: -1, msg: 'Error occurs while regenerate session.'})
-                    }
-                    req.session.loginUser = username;
-                    return res.send({ success: 0 })
-                })
-            }
-            else {
-                throw new Error('Username or password incorrect, please try again.');
-            }
-        } catch (err) {
-            console.log(err);
-            return res.send({success: -1, msg: err.message})
-        };
+        let validate = await dbi.validateUser(username, password);
+        if (validate.success == 0) {
+            req.session.regenerate(function (err) {
+                if (err) {
+                    return res.json({ success: -1, msg: 'Error occurs while regenerate session.'})
+                }
+                req.session.loginUser = username;
+                return res.send({ success: 0 })
+            })
+        }
+        else
+            return res.send(validate);
     })
 
 app.route('/logout').post((req, res) => {
@@ -104,15 +95,10 @@ app.route('/signup')
     .get((req, res) => {
         res.render('signup');
     })
-    .post((req, res) => {
+    .post(async (req, res) => {
         let username = req.body.username;
         let password = encrypt.md5(req.body.password);
-        dbi.createUser(username, password)
-            .then(p => {
-                res.json({success: 0});
-            }).catch(err => {
-                res.json({ success: -1, msg: err.message });
-            })
+        return res.json(await dbi.createUser(username, password));
     })
 
 //To Root Directory
@@ -144,7 +130,6 @@ app.route('/user/shared/:owner')
             // Get info of the share index page
             // Directory Name | Owner | Authority
 
-       
             
     })
 */
@@ -168,11 +153,6 @@ app.route('/user/:user')
                 layout: false
             });
         let path = req.query.path;
-        if (!path)
-            path = '/';
-        // Avoid no slash
-        if (path[0] != '/')
-            path = '/' + path;
         try {
             var msg = null;
             let data = await dbi.findAllItemInDir(path, user)
@@ -198,7 +178,7 @@ app.route('/upload')
     .get((req, res) => {
         return res.render('upload');
     })
-    .post(upload.single('file'), (req, res)=> {
+    .post(upload.single('file'), async (req, res)=> {
         let file = req.file;
         let path = req.body.path;
         let user = req.session.loginUser;
@@ -209,46 +189,57 @@ app.route('/upload')
         console.log(path);
         console.log(path);
 
-        dbi.createFile(
+        var status=await dbi.createFile(
             name=file.originalname,
-            dir_id=1,
+            dir_path=path,
             update_time=new Date().toUTCString(),
             user=user,
             path=file.path,
             size=file.size
-        ).then(r => {
-            // return res.json({success: 0});
+        )
+        if (status.success == 0)
             res.redirect('back');
-        }).catch(err => {
-            console.log(err);
-            return res.json({success: -1, msg: err.message})
-        });
+        return res.json(status)
     })
 
 
-app.route('download')
+app.route('download').post(async (req, res) => {
+    let f_id = req.body.file_id;
+    let dir_id = req.body.dir_id;
+    let user = req.session.loginUser;
+    
+    // Than You should verify whether user has the authority
+    // to access the directory
+    
+    // If he can access it, let him download the file.
+
+    // We'll make further discussion
+    // on how file downloaded.
+    
+})
     // input: file_id
     // Return: {buf: data, name: name}
-    let file_id = 1;
+    // let file_id = 1;
 
     // Your code here
     // this is a async function, it would return a promise
     // not test yet!!!
-async function tmp(f_id) {
-    var result = await Files.findOne({
-        where: {
-            file_id: f_id
-        },
-        attributes: ['name', 'data']
-    });
-    if (result == null || result == undefined) {
-        return false;
-    }
-    return {
-        buf: result.data,
-        name: result.name
-    }
-};
+
+    // async function tmp(f_id) {
+    //     var result = await Files.findOne({
+    //         where: {
+    //             file_id: f_id
+    //         },
+    //         attributes: ['name', 'data']
+    //     });
+    //     if (result == null || result == undefined) {
+    //         return false;
+    //     }
+    //     return {
+    //         buf: result.data,
+    //         name: result.name
+    //     }
+    // };
 
 
 app.route('/mkdir').post(async (req, res) => {
@@ -260,20 +251,39 @@ app.route('/mkdir').post(async (req, res) => {
     // input: currentPath, dirName, user (Judge duplicate name)
     // Output: success or not
     // You should throw a error message!
-    dbi.makedirectory(dirname, path, user)
-        .then(p => {
-            return res.send({success: 0});
-        }).catch(err => {
-            console.log(err)
-            return res.send({ success: -1, msg: err.message })
-        });
+    return res.send(await dbi.makedirectory(dirname, path, user))
 })
     
 
-//app.route('authority')
+app.route('/user/manage/:user').get((req, res) => {
+    let dir_id = req.body.dir_id;
+    let user = req.session.loginUser;
+    console.log(user);
+    // Return a list of authority list 
+    // Just like this:
+    data = {
+        // Authority level
+        // 1: read only
+        // 2: writable
+        list:[
+            {user: '123', authority: '1'},
+            {user: '234', authority: '2'},
+        ]
+    }
+    res.render('manage', data);
+})
+
+app.route('authority').post((req, res) => {
+    let owner = req.session.loginUser;
+    let target = req.body.target;
+    let authority = req.body.authority;
+    let dir_id = req.body.dir_id; 
     // input: dir_id, user(owner), targetUser, authority
     // Output: success or not
+})
 
 
 app.set('port', process.env.PORT || 8080);
 app.listen(app.get('port'));
+
+
