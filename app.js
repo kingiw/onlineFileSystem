@@ -155,7 +155,7 @@ app.route('/user/:user')
         let path = req.query.path;
         try {
             var msg = null;
-            let data = await dbi.findAllItemInDir(path, user)
+            let data = await dbi.getItemListByPath(path, user)
                 .catch(err => {
                     console.log(err);
                     msg = err.message;
@@ -184,26 +184,31 @@ app.route('/upload')
         let user = req.session.loginUser;
         if (!user)
             return res.redirect("signin");
-        // Given Path
-        console.log(user);
-        console.log(path);
-        console.log(path);
-
-        var status=await dbi.createFile(
-            name=file.originalname,
-            dir_path=path,
-            update_time=new Date().toUTCString(),
-            user=user,
-            path=file.path,
-            size=file.size
-        )
+        
+        if (file) {
+            var status=await dbi.createFileByPath(
+                name=file.originalname,
+                dir_path=path,
+                update_time=new Date().toUTCString(),
+                user=user,
+                path=file.path,
+                size=file.size
+            )
+        }
+        else {
+            var status = {
+                success: -1,
+                msg: 'No file selected.'
+            }
+        }
         if (status.success == 0)
             res.redirect('back');
-        return res.json(status)
+        else
+            return res.json(status);
     })
 
 
-app.route('download').post(async (req, res) => {
+app.route('/download').post(async (req, res) => {
     let f_id = req.body.file_id;
     let dir_id = req.body.dir_id;
     let user = req.session.loginUser;
@@ -215,31 +220,17 @@ app.route('download').post(async (req, res) => {
 
     // We'll make further discussion
     // on how file downloaded.
-    
-})
     // input: file_id
-    // Return: {buf: data, name: name}
-    // let file_id = 1;
-
-    // Your code here
-    // this is a async function, it would return a promise
-    // not test yet!!!
-
-    // async function tmp(f_id) {
-    //     var result = await Files.findOne({
-    //         where: {
-    //             file_id: f_id
-    //         },
-    //         attributes: ['name', 'data']
-    //     });
-    //     if (result == null || result == undefined) {
-    //         return false;
-    //     }
-    //     return {
+    // Return: {            
+    //         success: status,
+    //         msg: error message,
     //         buf: result.data,
     //         name: result.name
     //     }
-    // };
+    let data = await dbi.getFile(f_id, dir_id, user);
+    console.log(data);
+    return res.send(data);
+})
 
 
 app.route('/mkdir').post(async (req, res) => {
@@ -264,7 +255,7 @@ app.route('/user/manage/:user').get(async (req, res) => {
     // Authority level
     // 1: read only
     // 2: writable
-    data = await dbi.getAuthority(path, user);
+    data = await dbi.getAuthorityList(path, user);
     res.render('manage', data);
 })
 

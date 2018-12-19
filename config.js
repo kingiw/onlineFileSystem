@@ -3,5 +3,6 @@ module.exports = {
     dbuser: 'dswww',
     dbpwd: 'AlaDBSwww',
     database: 'DCWEB',
-    dbport: 3305
+    dbport: 3305,
+    dbdebug: true
 }
