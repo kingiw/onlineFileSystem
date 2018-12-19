@@ -171,6 +171,9 @@ async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) 
         }, { transaction: tran });
     }
     else {
+        if (targetUser == user) {
+            throw new Error('Failed.')
+        }
         await Privilege.update(
             {
                 priv: authority
