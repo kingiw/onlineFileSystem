@@ -184,26 +184,31 @@ app.route('/upload')
         let user = req.session.loginUser;
         if (!user)
             return res.redirect("signin");
-        // Given Path
-        console.log(user);
-        console.log(path);
-        console.log(path);
-
-        var status=await dbi.createFile(
-            name=file.originalname,
-            dir_path=path,
-            update_time=new Date().toUTCString(),
-            user=user,
-            path=file.path,
-            size=file.size
-        )
+        
+        if (file) {
+            var status=await dbi.createFile(
+                name=file.originalname,
+                dir_path=path,
+                update_time=new Date().toUTCString(),
+                user=user,
+                path=file.path,
+                size=file.size
+            )
+        }
+        else {
+            var status = {
+                success: -1,
+                msg: 'No file selected.'
+            }
+        }
         if (status.success == 0)
             res.redirect('back');
-        return res.json(status)
+        else
+            return res.json(status);
     })
 
 
-app.route('download').post(async (req, res) => {
+app.route('/download').post(async (req, res) => {
     let f_id = req.body.file_id;
     let dir_id = req.body.dir_id;
     let user = req.session.loginUser;
@@ -222,7 +227,9 @@ app.route('download').post(async (req, res) => {
     //         buf: result.data,
     //         name: result.name
     //     }
-    return res.send(await dbi.getFile(f_id, dir_id, user));
+    let data = await dbi.getFile(f_id, dir_id, user);
+    console.log(data);
+    return res.send(data);
 })
 
 
