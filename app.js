@@ -23,6 +23,8 @@ let identityKey = '1234567890';
 let encrypt = require('./dbmodels/md5');
 let dbi = require('./dbi')
 
+let uploadpath = '/public/uploads';
+
 app.use(session({
     name: identityKey,
     secret: 'signature',    //用来对session id相关的cookie进行签名
@@ -53,6 +55,7 @@ app.get('/', (req, res) => {
     }
     
 })
+
 
 //Sign In
 app.route('/signin')
@@ -171,7 +174,7 @@ app.route('/user/:user')
 
 // loading files
 let upload = multer({
-    dest: __dirname + '/public/uploads',
+    dest: '.' + uploadpath,
     limits: {fileSize: 1024 * 1024, files: 1},
 })
 app.route('/upload')
@@ -208,29 +211,41 @@ app.route('/upload')
     })
 
 
-app.route('/download').post(async (req, res) => {
-    let f_id = req.body.file_id;
-    let dir_id = req.body.dir_id;
-    let user = req.session.loginUser;
+app.route('/download')
+    .get(async (req, res) => {
+        let path = req.query.path;
+        let t = path.split('/');
+        if (t.length != 2) {
+            res.json({
+                success: -1,
+                msg: 'invaild path.'
+            })
+        }
+        let f_id = t[1];
+        let dir_id = t[0];
+        let user = req.session.loginUser;
     
-    // Than You should verify whether user has the authority
-    // to access the directory
+        let data = await dbi.getFile(f_id, dir_id, user);
+        if (data.success == 0) {
+            return res.download(data.path, data.name);
+        }
+        else {
+            return res.send(data);
+        }
+    })
+    .post(async (req, res) => {
+        let f_id = req.body.file_id;
+        let dir_id = req.body.dir_id;
+        let user = req.session.loginUser;
     
-    // If he can access it, let him download the file.
-
-    // We'll make further discussion
-    // on how file downloaded.
-    // input: file_id
-    // Return: {            
-    //         success: status,
-    //         msg: error message,
-    //         buf: result.data,
-    //         name: result.name
-    //     }
-    let data = await dbi.getFile(f_id, dir_id, user);
-    console.log(data);
-    return res.send(data);
-})
+        let data = await dbi.getFile(f_id, dir_id, user);
+        if (data.success == 0) {
+            return res.download(data.path, data.name);
+        }
+        else {
+            return res.send(data);
+        }
+    });
 
 
 app.route('/mkdir').post(async (req, res) => {
