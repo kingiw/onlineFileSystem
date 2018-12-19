@@ -399,7 +399,6 @@ module.exports = {
 
     // This async function would insert file into directory
     // will check authority, failed when <2
-    // will remove file from disk at success, will not at failed
     // Input: name, dir_id, update_time, user, path, size
     // Return:{
     //      success, msg
@@ -411,7 +410,6 @@ module.exports = {
         let ck = await this.checkAuthority(dir_id, user);
         if (ck.authority > 1) {
             await sequelize.transaction(async t => {
-                let f = fs.readFileSync(path);
                 let result = await FileInDirectory.findOne({
                     attributes: [[sequelize.fn('MAX', sequelize.col('file_id')), 'file_id']],
                     transaction: t
@@ -423,14 +421,12 @@ module.exports = {
                     update_time: update_time,
                     user: user,
                     size: size,
-                    data: f
+                    path: path
                 }, { transaction: t });
                 let newfile_dir = await FileInDirectory.create({
                     file_id: max_i,
                     dir_id: dir_id
                 }, { transaction: t });
-            }).then(r => {
-                fs.unlink(path);
             }).catch(err => {
                 status = -1;
                 msg = err.message;
@@ -450,7 +446,6 @@ module.exports = {
     // This async function would insert file into directory by path
     // will call createFile()
     // thus will also check authority, failed when <2
-    // will remove file from disk at success, will not at failed
     // Input: name, dir_path, update_time, user, path, size
     // Return:{
     //      success, msg
@@ -716,8 +711,7 @@ module.exports = {
     // Input: file_id, dir_id, user
     // Return:{
     //      success, msg,
-    //      buf,    //if original file is empty, will be null
-    //      name
+    //      path, name
     // }
     // Possible msg: SQL Error, 'Permission denied.', 'Failed to get file.'
     getFile: async function (f_id, dir_id, user) {
@@ -733,20 +727,20 @@ module.exports = {
                 where: {
                     file_id: f_id
                 },
-                attributes: ['name', 'data']
+                attributes: ['name', 'path']
             });
             if (result == null || result == undefined) {
                 status = -1;
                 msg = 'Failed to get file.';
                 result = {
-                    data: null,
+                    path: null,
                     name: null,
                 }
             }
         }
         else {
             var result = {
-                data: null,
+                path: null,
                 name: null,
             }
         }
@@ -754,7 +748,7 @@ module.exports = {
         return {
             success: status,
             msg: msg,
-            buf: result.data,
+            path: result.path,
             name: result.name
         }
     },

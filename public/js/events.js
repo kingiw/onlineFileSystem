@@ -96,18 +96,19 @@ $('.dir').click(function() {
 $('.file').click(function() {
     let dir_id = $('#dir_id').text();
     let file_id = $(this).attr("value");
-    $.ajax({
-        type: 'POST',
-        url: '/download',
-        data: {
-            dir_id: dir_id,
-            file_id: file_id,
-        },
-        success: function(data) {
-            console.log(data);
-        },
-        dataType: "json",
-    });
+    window.open('/download?path=' + dir_id + '/' + file_id);
+    // $.ajax({
+    //     type: 'POST',
+    //     url: '/download',
+    //     data: {
+    //         dir_id: dir_id,
+    //         file_id: file_id,
+    //     },
+    //     success: function(data) {
+    //         console.log(data);
+    //     },
+    //     dataType: "json",
+    // });
 })
 
 $('#manageAuthority').click(function() {
