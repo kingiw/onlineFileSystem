@@ -138,12 +138,31 @@ app.route('/user/shared/:owner')
 */
 
 // Display the directories shared to current user
-app.route('/user/shared/:user')
-    .get(function(req, res) {
+app.route('/shared/:user')
+    .get(async (req, res) => {
         let user = req.session.loginUser;
         if (!user)
-            return 
-    })
+            return res.redirect('/signin');
+        if (user != req.params.user)
+            return res.render('404', {
+                layout: false
+            });
+        let path = req.query.path;
+        if (!path || path == '') {
+            let data = await dbi.getSharedList(user);
+            if (data.success == 0)
+                return res.render('shareddirectory', data);
+            else
+                return res.json({ success: -1, msg: data.msg });
+        }
+        else {
+            let data = await dbi.getItemList(Number(path), user);
+            if (data.success == 0)
+                return res.render('shareddirectory', data);
+            else
+                return res.json({ success: -1, msg: data.msg });
+        }
+    });
 
 // Personal page
 app.route('/user/:user')
@@ -156,20 +175,11 @@ app.route('/user/:user')
                 layout: false
             });
         let path = req.query.path;
-        try {
-            var msg = null;
-            let data = await dbi.getItemListByPath(path, user)
-                .catch(err => {
-                    console.log(err);
-                    msg = err.message;
-                });
-            if (msg) {
-                throw new Error(msg);
-            }
+        let data = await dbi.getItemListByPath(path, user);
+        if (data.success == 0)
             return res.render('directory', data);
-        } catch(err) {
-            return res.json({success: -1, msg: err.message});
-        }
+        else
+            return res.json({ success: -1, msg: data.msg });
     })
 
 // loading files

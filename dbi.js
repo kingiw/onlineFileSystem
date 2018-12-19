@@ -277,9 +277,9 @@ module.exports = {
         var status = 0;
         var msg = null;
         let ck = await this.checkAuthority(dir_id, user);
-        let ownship = await this.checkOwner(dir_id);
+        let ownship = await this.checkDir(dir_id);
         var itemlist = [];
-        if (ck.authority >= 1) {
+        if (ck.authority >= 1 && status == 0) {
             var dirs = await Directory.findAll({
                 attributes: ['name', 'dir_id'],
                 include: [
@@ -339,7 +339,8 @@ module.exports = {
         return {
             success: status,
             msg: msg,
-            list: itemlist,  
+            list: itemlist,
+            currentDir: ownship.name,
             dir_id : dir_id,
             owner: ownship.owner,
             Authority: ck.authority, 
@@ -387,7 +388,7 @@ module.exports = {
         }
         checkError(msg);
         return {
-            status: status,
+            success: status,
             msg: msg,
             list: result.list,  
             currentPath: tmppath,
@@ -618,21 +619,21 @@ module.exports = {
         }
     },
 
-    // This async function would return owner of directory
+    // This async function would return owner and name of directory
     // Input: dir_id
     // Return:{
     //      success, msg,
-    //      owner
+    //      owner, name
     // }
     // Possible msg: SQL Error, 'No owner or directory not exists.'
-    checkOwner: async function (dir_id) {
+    checkDir: async function (dir_id) {
         var status = 0;
         var owner = null;
+        var name = null;
         var msg = null;
-        let ck_exist = await Privilege.findOne({
+        let ck_exist = await Directory.findOne({
             where: {
                 dir_id: dir_id,
-                priv: 3
             }
         }).catch(err => {
             status = -1;
@@ -640,6 +641,7 @@ module.exports = {
         });
         if (ck_exist) {
             owner = ck_exist.user;
+            name = ck_exist.name;
         }
         else {
             status = -1;
@@ -649,7 +651,8 @@ module.exports = {
         return {
             success: status,
             msg: msg,
-            owner: owner
+            owner: owner,
+            name: name
         }
     },
 
@@ -752,4 +755,71 @@ module.exports = {
             name: result.name
         }
     },
+
+    checkUser: async function (user) {
+        var status = 0;
+        var msg = null;
+        let ck = await User.findOne({
+            where: {
+                user: user
+            }
+        }).catch(err => {
+            status = -1;
+            msg = err.message;
+        })
+        if (status != 0 || !ck) {
+            status = -1;
+            msg = 'Failed to find such user.';
+        }
+        return {
+            success: status,
+            msg: msg
+        }
+    },
+
+    getSharedList: async function (user) {
+        var status = 0;
+        var msg = null;
+        var itemlist = [];
+        var result = await Privilege.findAll({
+            attributes: [
+                'dir_id', 'priv'
+            ],
+            where: {
+                user: user,
+                priv: {
+                    [Sequelize.Op.in]: [1, 2]
+                }
+            },
+            include: [
+                {
+                    model: Directory,
+                    attributes: [
+                        'name',
+                        ['user', 'owner']
+                    ]
+                }
+            ]
+        }).catch(err => {
+            status = -1;
+            msg = err.message;
+        });
+        if (status == 0) {
+            for (let i of result) {
+                itemlist.push({
+                    id: i.dir_id,
+                    name: i.Directory.name,
+                    owner: i.Directory.dataValues['owner'],
+                    authority: i.priv
+                })
+            }
+        }
+        return {
+            success: status,
+            msg: msg,
+            list: itemlist,
+            owner: user,
+            currentDir: 'Shared'
+        }
+    }
 }

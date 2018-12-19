@@ -87,10 +87,17 @@ $('#mkdircancel').click(function() {
 
 $('.dir').click(function() {
     // Avoid double slash
-    let currentPath = $('#currentpath').text();
-    let dirname = $(this).children(":first").text().trim();
     let username = window.location.pathname.split('/').slice(-1)[0];
-    window.location.href = username + '?path=' + currentPath + dirname + '/';
+    let owner = $('#owner').text();
+    if (!owner) {
+        let currentPath = $('#currentpath').text();
+        let dirname = $(this).children(":first").text().trim();
+        window.location.href = username + '?path=' + currentPath + dirname + '/';
+    }
+    else {
+        let dir_id = $(this).attr("value").trim();
+        window.location.href = username + '?path=' + dir_id;
+    }
 })
 
 $('.file').click(function() {
