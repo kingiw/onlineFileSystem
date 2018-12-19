@@ -489,4 +489,42 @@ module.exports = {
         }
         return { success: status, msg: msg, list: poi, currentPath: tmppath };
     },
+
+    getFile: async function (f_id, dir_id, user) {
+        var status = 0;
+        var msg = null;
+        let ck = await this.checkAuthority(dir_id, user);
+        if (ck.authority < 1) {
+            status = -1;
+            msg = 'Permission denied.';
+        }
+        if (status == 0) {
+            var result = await Files.findOne({
+                where: {
+                    file_id: f_id
+                },
+                attributes: ['name', 'data']
+            });
+            if (result == null || result == undefined) {
+                status = -1;
+                msg = 'Failed to get file.';
+                result = {
+                    data: null,
+                    name: null,
+                }
+            }
+        }
+        else {
+            var result = {
+                data: null,
+                name: null,
+            }
+        }
+        return {
+            success: status,
+            msg: msg,
+            buf: result.data,
+            name: result.name
+        }
+    },
 }

@@ -215,31 +215,15 @@ app.route('download').post(async (req, res) => {
 
     // We'll make further discussion
     // on how file downloaded.
-    
-})
     // input: file_id
-    // Return: {buf: data, name: name}
-    // let file_id = 1;
-
-    // Your code here
-    // this is a async function, it would return a promise
-    // not test yet!!!
-
-    // async function tmp(f_id) {
-    //     var result = await Files.findOne({
-    //         where: {
-    //             file_id: f_id
-    //         },
-    //         attributes: ['name', 'data']
-    //     });
-    //     if (result == null || result == undefined) {
-    //         return false;
-    //     }
-    //     return {
+    // Return: {            
+    //         success: status,
+    //         msg: error message,
     //         buf: result.data,
     //         name: result.name
     //     }
-    // };
+    return res.send(await dbi.getFile(f_id, dir_id, user));
+})
 
 
 app.route('/mkdir').post(async (req, res) => {
