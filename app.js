@@ -170,6 +170,7 @@ app.route('/user/:user')
         let path = req.query.path;
         if (!path)
             path = '/';
+        // Avoid no slash
         if (path[0] != '/')
             path = '/' + path;
         try {

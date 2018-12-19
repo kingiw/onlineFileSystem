@@ -94,6 +94,7 @@ $(".file").click(() => {
 
 
 $('.dir').click(function() {
+    // Avoid double slash
     let currentPath = $('#currentpath').text().slice(1,);
     let dirname = $(this).children(":first").text().trim();
     let username = window.location.pathname.split('/').slice(-1)[0];
