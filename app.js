@@ -130,7 +130,6 @@ app.route('/user/shared/:owner')
             // Get info of the share index page
             // Directory Name | Owner | Authority
 
-       
             
     })
 */
@@ -204,29 +203,43 @@ app.route('/upload')
     })
 
 
-app.route('download')
+app.route('download').post(async (req, res) => {
+    let f_id = req.body.file_id;
+    let dir_id = req.body.dir_id;
+    let user = req.session.loginUser;
+    
+    // Than You should verify whether user has the authority
+    // to access the directory
+    
+    // If he can access it, let him download the file.
+
+    // We'll make further discussion
+    // on how file downloaded.
+    
+})
     // input: file_id
     // Return: {buf: data, name: name}
-    let file_id = 1;
+    // let file_id = 1;
 
     // Your code here
     // this is a async function, it would return a promise
     // not test yet!!!
-async function tmp(f_id) {
-    var result = await Files.findOne({
-        where: {
-            file_id: f_id
-        },
-        attributes: ['name', 'data']
-    });
-    if (result == null || result == undefined) {
-        return false;
-    }
-    return {
-        buf: result.data,
-        name: result.name
-    }
-};
+
+    // async function tmp(f_id) {
+    //     var result = await Files.findOne({
+    //         where: {
+    //             file_id: f_id
+    //         },
+    //         attributes: ['name', 'data']
+    //     });
+    //     if (result == null || result == undefined) {
+    //         return false;
+    //     }
+    //     return {
+    //         buf: result.data,
+    //         name: result.name
+    //     }
+    // };
 
 
 app.route('/mkdir').post(async (req, res) => {
@@ -242,10 +255,35 @@ app.route('/mkdir').post(async (req, res) => {
 })
     
 
-//app.route('authority')
+app.route('/user/manage/:user').get((req, res) => {
+    let dir_id = req.body.dir_id;
+    let user = req.session.loginUser;
+    console.log(user);
+    // Return a list of authority list 
+    // Just like this:
+    data = {
+        // Authority level
+        // 1: read only
+        // 2: writable
+        list:[
+            {user: '123', authority: '1'},
+            {user: '234', authority: '2'},
+        ]
+    }
+    res.render('manage', data);
+})
+
+app.route('authority').post((req, res) => {
+    let owner = req.session.loginUser;
+    let target = req.body.target;
+    let authority = req.body.authority;
+    let dir_id = req.body.dir_id; 
     // input: dir_id, user(owner), targetUser, authority
     // Output: success or not
+})
 
 
 app.set('port', process.env.PORT || 8080);
 app.listen(app.get('port'));
+
+

@@ -1,8 +1,5 @@
 
-$(document).ready(function() {
-    
-})
-
+$('.ui.dropdown').dropdown();
 
 $('#loginbtn').click(function() {
     let username = $("input[name='username']").val();
@@ -88,14 +85,46 @@ $('#mkdircancel').click(function() {
 })
 
 
-$(".file").click(() => {
-    console.log($(this).text());
-})
-
-
 $('.dir').click(function() {
+    // Avoid double slash
     let currentPath = $('#currentpath').text().slice(1,);
     let dirname = $(this).children(":first").text().trim();
     let username = window.location.pathname.split('/').slice(-1)[0];
     window.location.href = username + '?path=' + currentPath + '/' + dirname;
 })
+
+$('.file').click(function() {
+    let dir_id = $('#dir_id').text();
+    let file_id = $(this).attr("value");
+    $.ajax({
+        type: 'POST',
+        url: '/download',
+        data: {
+            dir_id: dir_id,
+            file_id: file_id,
+        },
+        success: function(data) {
+            console.log(data);
+        },
+        dataType: "json",
+    });
+})
+
+$('#manageAuthority').click(function() {
+    let username = window.location.pathname.split('/').slice(-1)[0];
+    let currentPath = $('#currentpath').text().slice(1,);
+    location.href = 'manage/' + username + '?path=' + currentPath;
+    // $.ajax({
+    //     type: 'POST',
+    //     url: '/manage/' + username,
+    //     data: {
+    //         dir_id: $('#dir_id').text()
+    //     }
+    // })
+})
+
+$('#share').click(function() {
+    $('#sharemodal').css('display', '');
+})
+
+$('#authorityDropdown').dropdown('set selected', 1);
