@@ -141,6 +141,9 @@ async function pathTodirID(path, user) {
 }
 
 async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) {
+    if (targetUser != user || authority==3) {
+        throw new Error('Full privilege(3) could only given to owner.')
+    }
     var ck_exist = await Privilege.findAll({
         where: {
             dir_id: dir_id
