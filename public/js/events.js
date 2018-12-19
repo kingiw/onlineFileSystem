@@ -87,10 +87,10 @@ $('#mkdircancel').click(function() {
 
 $('.dir').click(function() {
     // Avoid double slash
-    let currentPath = $('#currentpath').text().slice(1,);
+    let currentPath = $('#currentpath').text();
     let dirname = $(this).children(":first").text().trim();
     let username = window.location.pathname.split('/').slice(-1)[0];
-    window.location.href = username + '?path=' + currentPath + '/' + dirname;
+    window.location.href = username + '?path=' + currentPath + dirname + '/';
 })
 
 $('.file').click(function() {
@@ -112,7 +112,7 @@ $('.file').click(function() {
 
 $('#manageAuthority').click(function() {
     let username = window.location.pathname.split('/').slice(-1)[0];
-    let currentPath = $('#currentpath').text().slice(1,);
+    let currentPath = $('#currentpath').text();
     location.href = 'manage/' + username + '?path=' + currentPath;
     // $.ajax({
     //     type: 'POST',
