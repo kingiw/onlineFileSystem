@@ -155,7 +155,7 @@ app.route('/user/:user')
         let path = req.query.path;
         try {
             var msg = null;
-            let data = await dbi.findAllItemInDir(path, user)
+            let data = await dbi.getItemListByPath(path, user)
                 .catch(err => {
                     console.log(err);
                     msg = err.message;
@@ -186,7 +186,7 @@ app.route('/upload')
             return res.redirect("signin");
         
         if (file) {
-            var status=await dbi.createFile(
+            var status=await dbi.createFileByPath(
                 name=file.originalname,
                 dir_path=path,
                 update_time=new Date().toUTCString(),
@@ -255,7 +255,7 @@ app.route('/user/manage/:user').get(async (req, res) => {
     // Authority level
     // 1: read only
     // 2: writable
-    data = await dbi.getAuthority(path, user);
+    data = await dbi.getAuthorityList(path, user);
     res.render('manage', data);
 })
 
