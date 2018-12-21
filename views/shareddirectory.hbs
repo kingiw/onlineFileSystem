@@ -1,46 +1,82 @@
-
-
 <table class="ui selectable striped table">
-   <thead>
-    <tr>
-       <th colspan="3"><span id="owner">{{owner}}</span>: <span id="currentdir">{{currentDir}}</span><span id="dir_id">{{dir_id}}</span></th>
-  </tr></thead>
-{{#if list}}
-  
-  <tbody>
-   {{#each list}}
-
-      {{#if this.file}}
-      <tr>
-         <td>
-            <i class="file outline icon"></i>{{this.name}}
-         </td>
-         <td>
-            {{this.time}}
-         </td>
-         <td>
-            <i class="cloud download icon file" value="{{this.id}}"></i> {{!--should be rewrite to id --}}
-         </td>
-      </tr>
-      {{else}}
-      <tr class="dir" value="{{this.id}}">
-         <td>
-            <i class="folder icon"></i>{{this.name}}
-         </td>
-         <td class="right aligned">
-             {{this.owner}}
-         </td>
-         <td>
-         </td>
-      </tr>
+   {{#if isSharedIndex}}
+      <tag id="isSharedIndex"></tag>
+      <thead>
+         <tr>
+            <th>Path</th>
+            <th>Owner</th>
+            <th>Your Authority</th>
+         </tr>
+      </thead>
+      {{#if list}}
+         <tbody>
+            {{#each list}}
+            <tr class="dir" value="{{this.id}}">
+               <td>
+                  <i class="folder icon"></i>{{this.name}}
+               </td>
+               <td>
+                  {{this.owner}}
+               </td>
+               <td>
+                  {{this.authority}}
+               </td>
+            </tr>
+            {{/each}}
+         </tbody>
+         {{else}}
+         <tbody>
+            <tr>
+               <td>No sharing directories!</td>
+               <td></td>
+               <td></td>
+            </tr>
+         </tbody>
       {{/if}}
-   {{/each}}
-{{else}}
-   <tbody>
-      <tr>
-         <td>No files or directories!</td>
-      </tr>
-   </tbody>
-{{/if}}
-  </tbody>
+   {{else}}
+      <thead>
+         <th colspan="3">
+            <span>{{owner}}</span>:
+            <span id="currentdir">{{currentDir}}</span>
+            <span id="dir_id">{{dir_id}}</span>
+         </th>
+      </thead>
+      {{#if list}}
+         <tbody>
+            {{#each list}}
+            <tr>
+               <td>
+                  <i class="file outline icon"></i>{{this.name}}
+               </td>
+               <td>
+                  {{this.time}}
+               </td>
+               <td>
+                  <i class="cloud download icon file" value="{{this.id}}"></i> 
+               </td>
+            </tr>
+            {{/each}}
+         </tbody>
+      {{else}}
+         <tbody>
+            <tr>
+               <td>No files or directories!</td>
+            </tr>
+         </tbody>
+      {{/if}}
+   {{/if}}
 </table>
+{{#if writable}}
+<div>
+   <button class="ui primary basic button" id="falseinput" >Select File</button>
+   <button class="ui primary basic button" id="falseupload">Upload</button>
+   <div>
+      <span id="selected_filename">You havn't select any files.</span>
+   </div>
+</div>
+<form action="/upload" method="POST" enctype="multipart/form-data">
+    <input id="fileinput" type="file" name="file" style="display:none;">
+    <input type="hidden" name="id" value="{{dir_id}}" style="display:none">
+    <input id="doupload" type="submit" value="Upload" style="display:none;">
+</form>
+{{/if}}

@@ -282,6 +282,7 @@ module.exports = {
         let ck = await this.checkAuthority(dir_id, user);
         let ownship = await this.checkDir(dir_id);
         var itemlist = [];
+        console.log("Authority:", ck.authority);
         if (ck.authority >= 1 && status == 0) {
             var dirs = await Directory.findAll({
                 attributes: ['name', 'dir_id'],
@@ -339,15 +340,18 @@ module.exports = {
             msg = 'Permission denied.';
         }
         checkError(msg);
-        return {
+        ret = {
             success: status,
             msg: msg,
             list: itemlist,
             currentDir: ownship.name,
             dir_id : dir_id,
             owner: ownship.owner,
-            Authority: ck.authority, 
+            // Authority: ck.authority, 
         }
+        if (ck.authority == 2)
+            ret.writable = true;
+        return ret;
     },
 
     // This async function would get all item(file/dir) in directory by path
@@ -825,16 +829,25 @@ module.exports = {
                     id: i.dir_id,
                     name: i.Directory.name,
                     owner: i.Directory.dataValues['owner'],
-                    authority: i.priv
+                    authority: (i.priv == 1) ? 'Read Only' : 'Writable'
                 })
             }
         }
+        console.log({
+            success: status,
+            msg: msg,
+            list: itemlist,
+            owner: user,
+            // currentDir: 'Others sharing directories',
+            isSharedIndex: 'True'
+        });
         return {
             success: status,
             msg: msg,
             list: itemlist,
             owner: user,
-            currentDir: 'Shared'
+            // currentDir: 'Others sharing directories',
+            isSharedIndex: 'True'
         }
     }
 }

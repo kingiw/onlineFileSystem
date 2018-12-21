@@ -90,8 +90,9 @@ $('#mkdircancel').click(function() {
 $('.dir').click(function() {
     // Avoid double slash
     let username = window.location.pathname.split('/').slice(-1)[0];
-    let owner = $('#owner').text();
-    if (!owner) {
+    // let owner = $('#owner').text();
+    let flag = $('#isSharedIndex');
+    if (!flag) {
         let currentPath = $('#currentpath').text();
         let dirname = $(this).children(":first").text().trim();
         window.location.href = username + '?path=' + currentPath + dirname + '/';
@@ -106,18 +107,6 @@ $('.file').click(function() {
     let dir_id = $('#dir_id').text();
     let file_id = $(this).attr("value");
     window.open('/download?path=' + dir_id + '/' + file_id);
-    // $.ajax({
-    //     type: 'POST',
-    //     url: '/download',
-    //     data: {
-    //         dir_id: dir_id,
-    //         file_id: file_id,
-    //     },
-    //     success: function(data) {
-    //         console.log(data);
-    //     },
-    //     dataType: "json",
-    // });
 })
 
 $('#manageAuthority').click(function() {

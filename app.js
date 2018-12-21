@@ -114,29 +114,6 @@ app.route('/root').get((req, res) => {
 })
 
 
-/*
-Display the directories shared to current user
-app.route('/user/shared/:owner')
-    .get(function(req, res) {
-        let user = req.session.loginUser;
-        if (!user) 
-            return res.redirect('signin');
-        if (user != req.params.user)
-            return res.status(404);
-        let path = req.query.path;
-
-        // index page of shared
-        if (!path)
-            
-            // Input: path, user
-
-            // Get info of the share index page
-            // Directory Name | Owner | Authority
-
-            
-    })
-*/
-
 // Display the directories shared to current user
 app.route('/shared/:user')
     .get(async (req, res) => {
@@ -168,7 +145,7 @@ app.route('/shared/:user')
 app.route('/user/:user')
     .get(async (req, res) => {
         let user = req.session.loginUser;
-        if (!user) 
+        if (!user)
             return res.redirect('/signin');
         if (user != req.params.user)
             return res.render('404', {
@@ -193,23 +170,36 @@ app.route('/upload')
     })
     .post(upload.single('file'), async (req, res)=> {
         let file = req.file;
+        let id = req.body.id;
         let path = req.body.path;
         let user = req.session.loginUser;
         if (!user)
             return res.redirect("signin");
-        
+        let status;
         if (file) {
-            var status=await dbi.createFileByPath(
-                name=file.originalname,
-                dir_path=path,
-                update_time=new Date().toUTCString(),
-                user=user,
-                path=file.path,
-                size=file.size
-            )
+            if (path){
+                status=await dbi.createFileByPath(
+                    name=file.originalname,
+                    dir_path=path,
+                    update_time=new Date().toUTCString(),
+                    user=user,
+                    path=file.path,
+                    size=file.size
+                )
+            }
+            if (id){
+                status=await dbi.createFile(
+                    name=file.originalname,
+                    dir_id=id,
+                    update_time=new Date().toUTCString(),
+                    user=user,
+                    path=file.path,
+                    size=file.size
+                )
+            }
         }
         else {
-            var status = {
+            status = {
                 success: -1,
                 msg: 'No file selected.'
             }
