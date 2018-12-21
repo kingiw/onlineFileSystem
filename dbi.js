@@ -63,8 +63,8 @@ async function pathTodirID(path, user) {
             [Sequelize.literal("Directory.user"), 'user'],
         ],
         where: {
-            name: path_dirs[path_dirs.length - 1],
-            user: user
+            name: { [Sequelize.Op.eq]: path_dirs[path_dirs.length - 1] },
+            user: { [Sequelize.Op.eq]: user }
         },
         include: [
             {
@@ -74,7 +74,7 @@ async function pathTodirID(path, user) {
                     ['depth', 'depth']
                 ],
                 where: {
-                    depth: path_dirs.length - 1
+                    depth: { [Sequelize.Op.eq]: path_dirs.length - 1 }
                 }
             }
         ],
@@ -141,9 +141,12 @@ async function pathTodirID(path, user) {
 }
 
 async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) {
+    if (targetUser != user || authority==3) {
+        throw new Error('Full privilege(3) could only given to owner.')
+    }
     var ck_exist = await Privilege.findAll({
         where: {
-            dir_id: dir_id
+            dir_id: { [Sequelize.Op.eq]: dir_id }
         },
         transaction: tran
     })
@@ -180,8 +183,8 @@ async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) 
             },
             {
                 where: {
-                    user: targetUser,
-                    dir_id: dir_id
+                    user: { [Sequelize.Op.eq]: targetUser },
+                    dir_id: { [Sequelize.Op.eq]: dir_id }
                 },
                 transaction: tran
             }
@@ -200,8 +203,8 @@ module.exports = {
         var msg = null, status = 0;
         var userInfo = await User.findOne({
             where: {
-                user: username,
-                password: password
+                user: { [Sequelize.Op.eq]: username },
+                password: { [Sequelize.Op.eq]: password }
             }
         }).catch(err => {
             status = -1;
@@ -290,8 +293,8 @@ module.exports = {
                             ['depth', 'depth']
                         ],
                         where: {
-                            depth: 1,
-                            ancestor: dir_id
+                            depth: { [Sequelize.Op.eq]: 1 },
+                            ancestor: { [Sequelize.Op.eq]: dir_id }
                         }
                     }
                 ],
@@ -309,7 +312,7 @@ module.exports = {
                     [Sequelize.literal("File.name"), 'name']
                 ],
                 where: {
-                    dir_id: dir_id
+                    dir_id: { [Sequelize.Op.eq]: dir_id }
                 },
                 include: [
                     {
@@ -501,7 +504,7 @@ module.exports = {
                     ['name', 'name']
                 ],
                 where: {
-                    name: dirname
+                    name: { [Sequelize.Op.eq]: dirname }
                 },
                 include: [
                     {
@@ -511,8 +514,8 @@ module.exports = {
                             ['depth', 'depth']
                         ],
                         where: {
-                            depth: 1,
-                            ancestor: nowdir
+                            depth: { [Sequelize.Op.eq]: 1 },
+                            ancestor: { [Sequelize.Op.eq]: nowdir }
                         }
                     }
                 ],
@@ -533,7 +536,7 @@ module.exports = {
             }, { transaction: t });
             result = await DirectoryRelation.findAll({
                 where: {
-                    dir_id: nowdir
+                    dir_id: { [Sequelize.Op.eq]: nowdir }
                 },
                 transaction: t
             });
@@ -602,8 +605,8 @@ module.exports = {
         var msg = null;
         let ck_exist = await Privilege.findOne({
             where: {
-                dir_id: dir_id,
-                user: user
+                dir_id: { [Sequelize.Op.eq]: dir_id },
+                user: { [Sequelize.Op.eq]: user }
             }
         }).catch(err => {
             status = -1;
@@ -633,7 +636,7 @@ module.exports = {
         var msg = null;
         let ck_exist = await Directory.findOne({
             where: {
-                dir_id: dir_id,
+                dir_id: { [Sequelize.Op.eq]: dir_id },
             }
         }).catch(err => {
             status = -1;
@@ -686,7 +689,7 @@ module.exports = {
                         'user', 'priv'
                     ],
                     where: {
-                        dir_id: dir_id
+                        dir_id: { [Sequelize.Op.eq]: dir_id }
                     },
                     order: [
                         ['priv', 'DESC']
@@ -728,7 +731,7 @@ module.exports = {
         if (status == 0) {
             var result = await Files.findOne({
                 where: {
-                    file_id: f_id
+                    file_id: { [Sequelize.Op.eq]: f_id }
                 },
                 attributes: ['name', 'path']
             });
@@ -761,7 +764,7 @@ module.exports = {
         var msg = null;
         let ck = await User.findOne({
             where: {
-                user: user
+                user: { [Sequelize.Op.eq]: user }
             }
         }).catch(err => {
             status = -1;
@@ -786,7 +789,7 @@ module.exports = {
                 'dir_id', 'priv'
             ],
             where: {
-                user: user,
+                user: { [Sequelize.Op.eq]: user },
                 priv: {
                     [Sequelize.Op.in]: [1, 2]
                 }

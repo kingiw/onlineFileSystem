@@ -4,5 +4,5 @@ module.exports = {
     dbpwd: 'AlaDBSwww',
     database: 'DCWEB',
     dbport: 3305,
-    dbdebug: true
+    dbdebug: console.log
 }

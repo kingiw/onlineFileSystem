@@ -1,5 +1,4 @@
 /node_modules/*
 /sessions/*
-/public/uploads/*
 package-lock.json
 /**/*.sql

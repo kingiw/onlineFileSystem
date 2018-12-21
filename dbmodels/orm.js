@@ -10,5 +10,6 @@ module.exports =  new Sequelize(config.database, config.dbuser, config.dbpwd, {
         min: 0,
         idle: 30000
     },
-    logging: config.dbdebug
+    logging: config.dbdebug,
+    operatorsAliases: false
 });
