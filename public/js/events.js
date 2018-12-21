@@ -131,18 +131,40 @@ $('#manageAuthority').click(function() {
     // })
 })
 
-$('#share').click(function() {
-    $('#sharemodal').css('display', '');
-})
-
 
 $('#newAuthorityBtn').click(function() {
-    $('#newAuthorityModal').css('display', '')
-    $('#newAuthorityModal .authorityDropdown').dropdown('set selected', '1');
+    $('#newAuthorityModal').css('display', '');
 })
 
-$('.authorityDropdown').dropdown('set selected', '1');
+$('#newAuthorityCancel').click(function() {
+    $('#newAuthorityModal').css('display', 'none');
+})
 
-$('#authorityDropdown').dropdown('setting', 'onChange', function() {
+$('#newAuthorityConfirm').click(function() {
+    let target = $('#newAuthorityModal > td > div > input').val();
+    let authority = $('#newAuthorityModal .ui.dropdown').dropdown('get value');
+    let dir_id = $('#dir_id').text();
+    $.ajax({
+        type: 'post',
+        url: '/authority',
+        data: {
+            target: target,
+            authority: authority,
+            dir_id: dir_id
+        },
+        success: function(res){
+            if (res.success == 0)
+                location.reload();
+            else
+                console.log(res);
+        }
+    })
+})
+
+$('.authorityDropdown').dropdown('setting', 'onChange', function() {
     console.log($(this).dropdown('get value'));
+    let authority = parseInt($(this).dropdown('get value'));
+    let dir_id = $('#dir_id').text();
+    console.log(dir_id);
+
 })
