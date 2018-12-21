@@ -578,13 +578,27 @@ module.exports = {
     updateAuthority: async function (dir_id, user, targetUser, authority) {
         var status = 0;
         var msg = null;
-        await sequelize.transaction(async t => {
-            await updateAuthorityInTran(dir_id, user, targetUser, authority, t);
-        }).catch(err => {
-            console.log(err);
+        let ck = await this.checkUser(user);
+        if (ck.success != 0) {
             status = -1;
-            msg = err.message;
-        })
+            msg = 'user not exists.';
+        }
+        if (status == 0) {
+            let ck = await this.checkUser(targetUser);
+            if (ck.success != 0) {
+                status = -1;
+                msg = 'target user not exists.';
+            }
+        }
+        if (status == 0) {
+            await sequelize.transaction(async t => {
+                await updateAuthorityInTran(dir_id, user, targetUser, authority, t);
+            }).catch(err => {
+                console.log(err);
+                status = -1;
+                msg = err.message;
+            })
+        }
         checkError(msg);
         return {
             success: status,
