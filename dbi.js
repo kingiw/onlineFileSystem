@@ -168,7 +168,7 @@ async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) 
     }
     if (opc) {
         await Privilege.create({
-            user: user,
+            user: targetUser,
             dir_id: dir_id,
             priv: authority
         }, { transaction: tran });
@@ -727,6 +727,18 @@ module.exports = {
         if (ck.authority < 1) {
             status = -1;
             msg = 'Permission denied.';
+        }
+        if (status == 0) {
+            let ck = await FileInDirectory.findOne({
+                where: {
+                    file_id: { [Sequelize.Op.eq]: f_id },
+                    dir_id: { [Sequelize.Op.eq]: dir_id }
+                }
+            })
+            if (!ck) {
+                status = -1;
+                msg = 'invaild action.';
+            }
         }
         if (status == 0) {
             var result = await Files.findOne({

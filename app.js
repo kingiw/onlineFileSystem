@@ -281,10 +281,7 @@ app.route('/user/manage/:user')
         // 1: read only
         // 2: writable
         data = await dbi.getAuthorityList(path, user);
-        data.list.splice( data.list.indexOf({
-            user: user,
-            authority: 3
-        }), 1); // Delete the owner's authority
+        data.list.splice(0, 1); // Delete the owner's authority
         console.log(data);
         res.render('manage', data);
     })
@@ -295,7 +292,7 @@ app.route('/authority').post(async (req, res) => {
     let target = req.body.target;
     let authority = req.body.authority;
     console.log(dir_id, owner, target, authority);
-    data = await dbi.updateAuthority(dir_id, owner, target, authority);
+    data = await dbi.updateAuthority(Number(dir_id), owner, target, Number(authority));
     console.log(data);
     return res.send(data);
 })
