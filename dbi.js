@@ -709,7 +709,7 @@ module.exports = {
             }
         }
         checkError(msg);
-        return { success: status, msg: msg, list: poi, currentPath: tmppath };
+        return { success: status, msg: msg, list: poi, currentPath: tmppath, dir_id: dir_id};
     },
 
     // This async function would return data of file

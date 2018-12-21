@@ -3,7 +3,8 @@
 <table class="ui selectable striped table">
    <thead>
     <tr>
-       <th colspan="3"><span id="currentpath">{{currentPath}}</span><span id="dir_id">{{dir_id}}</span></th>
+       <th><span id="currentpath">Path: {{currentPath}}</span><span id="dir_id">{{dir_id}}</span></th>
+       <th>Authority</th>
   </tr></thead>
 {{#if list}}
   <tbody>
@@ -14,6 +15,16 @@
          </td>
          <td>
             {{this.authority}}
+            <div class="ui selection dropdown" class="authorityDropdown">
+               <input type="hidden" name="authority">
+               <i class="dropdown icon"></i>
+               {{!-- <div class="default text"></div> --}}
+               <div class="menu">
+                  <div class="item" data-value="0">No Access</div>
+                  <div class="item" data-value="1">Read Only</div>
+                  <div class="item" data-value="2">Writable</div>
+               </div>
+            </div>
          </td>
       </tr>
    {{/each}}
@@ -21,28 +32,45 @@
    <tbody>
       <tr>
          <td>Noone has authority to access to this directory.</td>
+         <td></td>
       </tr>
    </tbody>
 {{/if}}
-   <tr id="newdirtr" style="display:none;">
+   <tr id="newAuthorityModal" style="display:none;">
       <td>
          <div class="ui mini input">
-            <input id="newdirname" type="text" placeholder="Name...">
+            <input id="targetUser" type="text" placeholder="Name...">
          </div>
          <i class="check icon" id="mkdirconfirm"></i>
-         <i class="close icon" id="mkdircancel"></i></td>
-      <td></td>
-      <td></td>
+         <i class="close icon" id="mkdircancel"></i>
+      </td>
+      <td>
+         <div class="ui selection dropdown" class="authorityDropdown">
+               <input type="hidden" name="authority">
+               <i class="dropdown icon"></i>
+               <div class="menu">
+                  <div class="item" data-value="1">Read Only</div>
+                  <div class="item" data-value="2">Writable</div>
+               </div>
+            </div>
+      </td>
    </tr>
   </tbody>
 </table>
 
+
+<div>
+   <button class="ui primary basic button" id="newAuthorityBtn">New</button>
+</div>
+
+
+<br>
 <button class="ui primary basic button" id="share">Share</button>
 <div class="sharemodal">
    <div class="ui mini input">
       <input id="targetuser" type="text" placeholder="Username...">
    </div>
-   <div class="ui selection dropdown" id="authorityDropdown">
+   <div class="ui selection dropdown" class="authorityDropdown">
       <input type="hidden" name="authority">
       <i class="dropdown icon"></i>
       <div class="default text">Authority</div>
