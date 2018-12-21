@@ -14,9 +14,8 @@ $('#loginbtn').click(function() {
         success: function(data) {
             if (data.success == 0) {
                 location.href = "/"
-            } else {
-                $(".error.message").css('display', 'block');
-                $('.error.message').text(data.msg);
+            } else if (data.msg) {
+                alert(data.msg);
             }
         },
         dataType: "json",
@@ -35,10 +34,10 @@ $('#signupbtn').click(function() {
         },
         success: function(data) {
             if (data.success == 0) {
+                alert("Successfully sign up. Please sign in.")
                 location.href = "/signin"
-            } else {
-                $(".error.message").css('display', 'block');
-                $('.error.message').text(data.msg);
+            } else if (data.msg) {
+                alert(data.msg);
             }
         },
         dataType: "json",
@@ -54,7 +53,10 @@ $('#fileinput').change(function() {
 });
 
 $('#falseupload').click(function() {
-    $("#doupload").click();
+    if ($('#selected_filename').text() === "You havn't select any files.")
+        alert("Please select your file first.")
+    else
+        $("#doupload").click();
 })
 
 $('#makedirbtn').click(function() {
@@ -144,21 +146,31 @@ $('#newAuthorityConfirm').click(function() {
     let target = $('#newAuthorityModal > td > div > input').val();
     let authority = $('#newAuthorityModal .ui.dropdown').dropdown('get value');
     let dir_id = $('#dir_id').text();
-    $.ajax({
-        type: 'post',
-        url: '/authority',
-        data: {
-            target: target,
-            authority: authority,
-            dir_id: dir_id
-        },
-        success: function(res){
-            if (res.success == 0)
-                location.reload();
-            else
+
+    let usernameDOM = $('.username');
+    usernames = []
+    for (let i = 0; i < usernameDOM.length; ++i)
+        usernames.push(usernameDOM.eq(i).text().trim());
+    console.log(usernames);
+    if (usernames.includes(target))
+        alert('User\'s authority exists.');
+    else 
+        $.ajax({
+            type: 'post',
+            url: '/authority',
+            data: {
+                target: target,
+                authority: authority,
+                dir_id: dir_id
+            },
+            success: function(res){
                 console.log(res);
-        }
-    })
+                if (res.success == 0)
+                    location.reload();
+                else
+                    alert(res.msg);
+            }
+        })
 })
 
 $('.authorityDropdown').dropdown('setting', 'onChange', function() {

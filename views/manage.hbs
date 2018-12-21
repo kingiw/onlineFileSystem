@@ -10,15 +10,14 @@
   <tbody>
    {{#each list}}
       <tr>
-         <td>
+         <td class="username">
             {{this.user}}
          </td>
          <td>
-            {{this.authority}}
             <div class="ui selection dropdown authorityDropdown">
                <input type="hidden" name="authority"  value="{{this.authority}}">
                <i class="dropdown icon"></i>
-               {{!-- <div class="default text"></div> --}}
+               <div class="text"></div>
                <div class="menu">
                   <div class="item" data-value="0">No Access</div>
                   <div class="item" data-value="1">Read Only</div>

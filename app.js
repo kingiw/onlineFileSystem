@@ -291,7 +291,6 @@ app.route('/authority').post(async (req, res) => {
     let owner = req.session.loginUser;
     let target = req.body.target;
     let authority = req.body.authority;
-    console.log(dir_id, owner, target, authority);
     data = await dbi.updateAuthority(Number(dir_id), owner, target, Number(authority));
     console.log(data);
     return res.send(data);
