@@ -729,6 +729,18 @@ module.exports = {
             msg = 'Permission denied.';
         }
         if (status == 0) {
+            let ck = await FileInDirectory.findOne({
+                where: {
+                    file_id: { [Sequelize.Op.eq]: f_id },
+                    dir_id: { [Sequelize.Op.eq]: dir_id }
+                }
+            })
+            if (!ck) {
+                status = -1;
+                msg = 'invaild action.';
+            }
+        }
+        if (status == 0) {
             var result = await Files.findOne({
                 where: {
                     file_id: { [Sequelize.Op.eq]: f_id }
