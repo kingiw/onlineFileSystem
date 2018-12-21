@@ -135,4 +135,14 @@ $('#share').click(function() {
     $('#sharemodal').css('display', '');
 })
 
-$('#authorityDropdown').dropdown('set selected', 1);
+
+$('#newAuthorityBtn').click(function() {
+    $('#newAuthorityModal').css('display', '')
+    $('#newAuthorityModal .authorityDropdown').dropdown('set selected', '1');
+})
+
+$('.authorityDropdown').dropdown('set selected', '1');
+
+$('#authorityDropdown').dropdown('setting', 'onChange', function() {
+    console.log($(this).dropdown('get value'));
+})
