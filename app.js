@@ -268,7 +268,9 @@ app.route('/user/manage/:user').get((req, res) => {
         list:[
             {user: '123', authority: '1'},
             {user: '234', authority: '2'},
-        ]
+        ],
+        currentPath: '/',
+        dir_id: 1
     }
     res.render('manage', data);
 })
