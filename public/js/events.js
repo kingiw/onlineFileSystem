@@ -87,32 +87,40 @@ $('#mkdircancel').click(function() {
 
 $('.dir').click(function() {
     // Avoid double slash
-    let currentPath = $('#currentpath').text().slice(1,);
-    let dirname = $(this).children(":first").text().trim();
     let username = window.location.pathname.split('/').slice(-1)[0];
-    window.location.href = username + '?path=' + currentPath + '/' + dirname;
+    let owner = $('#owner').text();
+    if (!owner) {
+        let currentPath = $('#currentpath').text();
+        let dirname = $(this).children(":first").text().trim();
+        window.location.href = username + '?path=' + currentPath + dirname + '/';
+    }
+    else {
+        let dir_id = $(this).attr("value").trim();
+        window.location.href = username + '?path=' + dir_id;
+    }
 })
 
 $('.file').click(function() {
     let dir_id = $('#dir_id').text();
     let file_id = $(this).attr("value");
-    $.ajax({
-        type: 'POST',
-        url: '/download',
-        data: {
-            dir_id: dir_id,
-            file_id: file_id,
-        },
-        success: function(data) {
-            console.log(data);
-        },
-        dataType: "json",
-    });
+    window.open('/download?path=' + dir_id + '/' + file_id);
+    // $.ajax({
+    //     type: 'POST',
+    //     url: '/download',
+    //     data: {
+    //         dir_id: dir_id,
+    //         file_id: file_id,
+    //     },
+    //     success: function(data) {
+    //         console.log(data);
+    //     },
+    //     dataType: "json",
+    // });
 })
 
 $('#manageAuthority').click(function() {
     let username = window.location.pathname.split('/').slice(-1)[0];
-    let currentPath = $('#currentpath').text().slice(1,);
+    let currentPath = $('#currentpath').text();
     location.href = 'manage/' + username + '?path=' + currentPath;
     // $.ajax({
     //     type: 'POST',

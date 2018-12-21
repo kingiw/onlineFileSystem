@@ -23,6 +23,8 @@ let identityKey = '1234567890';
 let encrypt = require('./dbmodels/md5');
 let dbi = require('./dbi')
 
+let uploadpath = '/public/uploads';
+
 app.use(session({
     name: identityKey,
     secret: 'signature',    //用来对session id相关的cookie进行签名
@@ -53,6 +55,7 @@ app.get('/', (req, res) => {
     }
     
 })
+
 
 //Sign In
 app.route('/signin')
@@ -135,12 +138,31 @@ app.route('/user/shared/:owner')
 */
 
 // Display the directories shared to current user
-app.route('/user/shared/:user')
-    .get(function(req, res) {
+app.route('/shared/:user')
+    .get(async (req, res) => {
         let user = req.session.loginUser;
         if (!user)
-            return 
-    })
+            return res.redirect('/signin');
+        if (user != req.params.user)
+            return res.render('404', {
+                layout: false
+            });
+        let path = req.query.path;
+        if (!path || path == '') {
+            let data = await dbi.getSharedList(user);
+            if (data.success == 0)
+                return res.render('shareddirectory', data);
+            else
+                return res.json({ success: -1, msg: data.msg });
+        }
+        else {
+            let data = await dbi.getItemList(Number(path), user);
+            if (data.success == 0)
+                return res.render('shareddirectory', data);
+            else
+                return res.json({ success: -1, msg: data.msg });
+        }
+    });
 
 // Personal page
 app.route('/user/:user')
@@ -153,25 +175,16 @@ app.route('/user/:user')
                 layout: false
             });
         let path = req.query.path;
-        try {
-            var msg = null;
-            let data = await dbi.findAllItemInDir(path, user)
-                .catch(err => {
-                    console.log(err);
-                    msg = err.message;
-                });
-            if (msg) {
-                throw new Error(msg);
-            }
+        let data = await dbi.getItemListByPath(path, user);
+        if (data.success == 0)
             return res.render('directory', data);
-        } catch(err) {
-            return res.json({success: -1, msg: err.message});
-        }
+        else
+            return res.json({ success: -1, msg: data.msg });
     })
 
 // loading files
 let upload = multer({
-    dest: __dirname + '/public/uploads',
+    dest: '.' + uploadpath,
     limits: {fileSize: 1024 * 1024, files: 1},
 })
 app.route('/upload')
@@ -184,62 +197,65 @@ app.route('/upload')
         let user = req.session.loginUser;
         if (!user)
             return res.redirect("signin");
-        // Given Path
-        console.log(user);
-        console.log(path);
-        console.log(path);
-
-        var status=await dbi.createFile(
-            name=file.originalname,
-            dir_path=path,
-            update_time=new Date().toUTCString(),
-            user=user,
-            path=file.path,
-            size=file.size
-        )
+        
+        if (file) {
+            var status=await dbi.createFileByPath(
+                name=file.originalname,
+                dir_path=path,
+                update_time=new Date().toUTCString(),
+                user=user,
+                path=file.path,
+                size=file.size
+            )
+        }
+        else {
+            var status = {
+                success: -1,
+                msg: 'No file selected.'
+            }
+        }
         if (status.success == 0)
             res.redirect('back');
-        return res.json(status)
+        else
+            return res.json(status);
     })
 
 
-app.route('download').post(async (req, res) => {
-    let f_id = req.body.file_id;
-    let dir_id = req.body.dir_id;
-    let user = req.session.loginUser;
+app.route('/download')
+    .get(async (req, res) => {
+        let path = req.query.path;
+        let t = path.split('/');
+        if (t.length != 2) {
+            res.json({
+                success: -1,
+                msg: 'invaild path.'
+            })
+        }
+        let f_id = t[1];
+        let dir_id = t[0];
+        let user = req.session.loginUser;
     
-    // Than You should verify whether user has the authority
-    // to access the directory
+        let data = await dbi.getFile(f_id, dir_id, user);
+        if (data.success == 0) {
+            return res.download(data.path, data.name);
+        }
+        else {
+            return res.send(data);
+        }
+    })
+    .post(async (req, res) => {
+        let f_id = req.body.file_id;
+        let dir_id = req.body.dir_id;
+        let user = req.session.loginUser;
     
-    // If he can access it, let him download the file.
-
-    // We'll make further discussion
-    // on how file downloaded.
-    
-})
-    // input: file_id
-    // Return: {buf: data, name: name}
-    // let file_id = 1;
-
-    // Your code here
-    // this is a async function, it would return a promise
-    // not test yet!!!
-
-    // async function tmp(f_id) {
-    //     var result = await Files.findOne({
-    //         where: {
-    //             file_id: f_id
-    //         },
-    //         attributes: ['name', 'data']
-    //     });
-    //     if (result == null || result == undefined) {
-    //         return false;
-    //     }
-    //     return {
-    //         buf: result.data,
-    //         name: result.name
-    //     }
-    // };
+        let data = await dbi.getFile(f_id, dir_id, user);
+        if (data.success == 0) {
+            return res.download(data.path, data.name);
+        }
+        else {
+            return res.send(data);
+        }
+    });
 
 
 app.route('/mkdir').post(async (req, res) => {
@@ -255,23 +271,16 @@ app.route('/mkdir').post(async (req, res) => {
 })
     
 
-app.route('/user/manage/:user').get((req, res) => {
-    let dir_id = req.body.dir_id;
+app.route('/user/manage/:user').get(async (req, res) => {
+    let path = req.query.path;
     let user = req.session.loginUser;
     console.log(user);
     // Return a list of authority list 
     // Just like this:
-    data = {
-        // Authority level
-        // 1: read only
-        // 2: writable
-        list:[
-            {user: '123', authority: '1'},
-            {user: '234', authority: '2'},
-        ],
-        currentPath: '/',
-        dir_id: 1
-    }
+    // Authority level
+    // 1: read only
+    // 2: writable
+    data = await dbi.getAuthorityList(path, user);
     res.render('manage', data);
 })
 

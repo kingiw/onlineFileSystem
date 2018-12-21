@@ -10,7 +10,7 @@ module.exports = sequelize.define('File', {
     update_time: Sequelize.STRING(255),
     user: Sequelize.STRING(255),
     size: Sequelize.INTEGER,
-    data: Sequelize.BLOB('long')
+    path: Sequelize.STRING(255)
 }, {
         freezeTableName: true,
         timestamps: false
