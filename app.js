@@ -25,6 +25,8 @@ let dbi = require('./dbi')
 
 let uploadpath = '/public/uploads';
 
+let fs = require('fs');
+
 app.use(session({
     name: identityKey,
     secret: 'signature',    //用来对session id相关的cookie进行签名
@@ -216,8 +218,14 @@ app.route('/upload')
         }
         if (status.success == 0)
             res.redirect('back');
-        else
+        else {
+            try {
+                fs.unlinkSync(file.path);
+            } catch (e) {
+                status.msg += '\n FDF.'
+            }
             return res.json(status);
+        }
     })
 
 

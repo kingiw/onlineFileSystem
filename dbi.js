@@ -23,8 +23,6 @@ Privilege.belongsTo(User, { foreignKey: 'user' });
 Directory.hasMany(Privilege, { foreignKey: 'dir_id' });
 Privilege.belongsTo(Directory, { foreignKey: 'dir_id' });
 
-let fs = require('fs');
-
 let DEBUG = true;
 
 function checkError(msg, debugon=DEBUG) {
