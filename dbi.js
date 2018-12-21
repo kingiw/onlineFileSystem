@@ -168,7 +168,7 @@ async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) 
     }
     if (opc) {
         await Privilege.create({
-            user: user,
+            user: targetUser,
             dir_id: dir_id,
             priv: authority
         }, { transaction: tran });
