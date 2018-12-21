@@ -275,38 +275,29 @@ app.route('/user/manage/:user')
     .get(async (req, res) => {
         let path = req.query.path;
         let user = req.session.loginUser;
-        console.log(user);
         // Return a list of authority list 
         // Just like this:
         // Authority level
         // 1: read only
         // 2: writable
         data = await dbi.getAuthorityList(path, user);
-
         data.list.splice( data.list.indexOf({
             user: user,
             authority: 3
         }), 1); // Delete the owner's authority
-
+        console.log(data);
         res.render('manage', data);
     })
-    .post(async (req, res) => {
-        let dir_id = req.body.dir_id;
-        let owner = req.session.loginUser;
-        let target = req.body.target;
-        let authority = req.body.authority;
-        data = await dbi.updateAuthority(dir_id, owner, target, authority);
-        console.log(data);
-        return res.send(data);
-    })
 
-app.route('authority').post((req, res) => {
+app.route('/authority').post(async (req, res) => {
+    let dir_id = req.body.dir_id;
     let owner = req.session.loginUser;
     let target = req.body.target;
     let authority = req.body.authority;
-    let dir_id = req.body.dir_id; 
-    // input: dir_id, user(owner), targetUser, authority
-    // Output: success or not
+    console.log(dir_id, owner, target, authority);
+    data = await dbi.updateAuthority(dir_id, owner, target, authority);
+    console.log(data);
+    return res.send(data);
 })
 
 

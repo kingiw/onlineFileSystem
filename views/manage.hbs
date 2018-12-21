@@ -15,8 +15,8 @@
          </td>
          <td>
             {{this.authority}}
-            <div class="ui selection dropdown" class="authorityDropdown">
-               <input type="hidden" name="authority">
+            <div class="ui selection dropdown authorityDropdown">
+               <input type="hidden" name="authority"  value="{{this.authority}}">
                <i class="dropdown icon"></i>
                {{!-- <div class="default text"></div> --}}
                <div class="menu">
@@ -41,18 +41,19 @@
          <div class="ui mini input">
             <input id="targetUser" type="text" placeholder="Name...">
          </div>
-         <i class="check icon" id="mkdirconfirm"></i>
-         <i class="close icon" id="mkdircancel"></i>
       </td>
       <td>
-         <div class="ui selection dropdown" class="authorityDropdown">
-               <input type="hidden" name="authority">
-               <i class="dropdown icon"></i>
-               <div class="menu">
-                  <div class="item" data-value="1">Read Only</div>
-                  <div class="item" data-value="2">Writable</div>
-               </div>
+         <div class="ui selection dropdown">
+            <input type="hidden" name="authority" value="1">
+            <i class="dropdown icon"></i>
+            <div class="text"></div> 
+            <div class="menu">
+               <div class="item" data-value="1">Read Only</div>
+               <div class="item" data-value="2">Writable</div>
             </div>
+         </div>
+         <i class="check icon" id="newAuthorityConfirm" ></i>
+         <i class="close icon" id="newAuthorityCancel"></i>
       </td>
    </tr>
   </tbody>
@@ -64,25 +65,24 @@
 </div>
 
 
-<br>
-<button class="ui primary basic button" id="share">Share</button>
+{{!-- <br>
 <div class="sharemodal">
    <div class="ui mini input">
       <input id="targetuser" type="text" placeholder="Username...">
    </div>
-   <div class="ui selection dropdown" class="authorityDropdown">
-      <input type="hidden" name="authority">
+   <div class="ui selection dropdown authorityDropdown">
+      <input type="hidden" name="authority" value="1">
+      <div class="text"></div> 
       <i class="dropdown icon"></i>
-      <div class="default text">Authority</div>
       <div class="menu">
          <div class="item" data-value="1">Read Only</div>
          <div class="item" data-value="2">Writable</div>
       </div>
    </div>
    <button class="ui primary basic button" id="shareconfimr">Confirm</button>
-</div>
-<form action="/upload" method="POST" enctype="multipart/form-data">
+</div> --}}
+{{!-- <form action="/upload" method="POST" enctype="multipart/form-data">
     <input id="fileinput" type="file" name="file" style="display:none;">
     <input type="hidden" name="path" value="{{currentPath}}" style="display:none">
     <input id="doupload" type="submit" value="Upload" style="display:none;">
-</form>
+</form> --}}
