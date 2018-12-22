@@ -22,6 +22,8 @@ let identityKey = '1234567890';
 
 let encrypt = require('./dbmodels/md5');
 let dbi = require('./dbi')
+let util_l = require('./util');
+Date.prototype.toString = function () { return util_l.dateFormat(this, 'yyyy-MM-dd hh:mm:ss') };
 
 let uploadpath = '/public/uploads';
 
@@ -173,31 +175,37 @@ app.route('/upload')
     .post(upload.single('file'), async (req, res)=> {
         let file = req.file;
         let id = req.body.id;
-        let path = req.body.path;
+        let tpath = req.body.path;
         let user = req.session.loginUser;
         if (!user)
             return res.redirect("signin");
         let status;
         if (file) {
-            if (path){
+            if (!!tpath){
                 status=await dbi.createFileByPath(
                     name=file.originalname,
-                    dir_path=path,
-                    update_time=new Date().toUTCString(),
+                    dir_path=tpath,
+                    update_time=new Date().toString(),
                     user=user,
                     path=file.path,
                     size=file.size
                 )
             }
-            if (id){
+            if (!!id){
                 status=await dbi.createFile(
                     name=file.originalname,
                     dir_id=id,
-                    update_time=new Date().toUTCString(),
+                    update_time=new Date().toString(),
                     user=user,
                     path=file.path,
                     size=file.size
                 )
+            }
+            if ((!!tpath && !!id) || (!tpath && !id)) {
+                status = {
+                    success: -1,
+                    msg: 'invaild action.'
+                }
             }
         }
         else {

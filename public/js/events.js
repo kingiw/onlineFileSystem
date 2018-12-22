@@ -91,7 +91,7 @@ $('.dir').click(function() {
     // Avoid double slash
     let username = window.location.pathname.split('/').slice(-1)[0];
     // let owner = $('#owner').text();
-    let flag = $('#isSharedIndex');
+    let flag = Object.keys($('#isSharedIndex')).length;
     if (!flag) {
         let currentPath = $('#currentpath').text();
         let dirname = $(this).children(":first").text().trim();
