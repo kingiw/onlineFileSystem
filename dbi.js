@@ -23,8 +23,6 @@ Privilege.belongsTo(User, { foreignKey: 'user' });
 Directory.hasMany(Privilege, { foreignKey: 'dir_id' });
 Privilege.belongsTo(Directory, { foreignKey: 'dir_id' });
 
-let fs = require('fs');
-
 let DEBUG = true;
 
 function checkError(msg, debugon=DEBUG) {
@@ -44,19 +42,19 @@ function fixpath(path) {
 }
 
 async function pathTodirID(path, user) {
-    var tmppath = path;
+    let tmppath = path;
     if (!tmppath)
         tmppath = '/';
     if (tmppath[0] != '/')
         tmppath = '/' + tmppath;
-    var path_dirs = tmppath.split('/');
+    let path_dirs = tmppath.split('/');
     if (path_dirs[0] == '') {
         path_dirs[0] = '/';
     }
     if (path_dirs[path_dirs.length - 1] == '') {
         path_dirs.pop();
     }
-    var possibleresult = await Directory.findAll({
+    let possibleresult = await Directory.findAll({
         attributes: [
             [Sequelize.literal("Directory.dir_id"), 'dir_id'],
             [Sequelize.literal("Directory.name"), 'name'],
@@ -84,7 +82,7 @@ async function pathTodirID(path, user) {
     }).catch(err => {
         throw new Error(err.message);
     });
-    var possibleID = [];
+    let possibleID = [];
     for (let i of possibleresult) {
         possibleID.push(i.dataValues['dir_id']);
     }
@@ -122,7 +120,7 @@ async function pathTodirID(path, user) {
         throw new Error(err.message);
     });
     for (let i of possibleresult) {
-        var ck_i = 0;
+        let ck_i = 0;
         if (i.DR.length < path_dirs.length)
             continue;
         for (let j of i.DR) {
@@ -144,15 +142,15 @@ async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) 
     if (targetUser != user && authority==3) {
         throw new Error('Full privilege(3) could only given to owner.')
     }
-    var ck_exist = await Privilege.findAll({
+    let ck_exist = await Privilege.findAll({
         where: {
             dir_id: { [Sequelize.Op.eq]: dir_id }
         },
         transaction: tran
     })
-    var opc = true;
+    let opc = true;
     if (ck_exist && ck_exist.length > 0) {
-        var hostPriv = 0, targetPriv = 0;
+        let hostPriv = 0, targetPriv = 0;
         for (let i of ck_exist) {
             if (i.user == user)
                 hostPriv = i.priv;
@@ -200,8 +198,8 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'Username or password incorrect...'
     validateUser: async function (username, password) {
-        var msg = null, status = 0;
-        var userInfo = await User.findOne({
+        let msg = null, status = 0;
+        let userInfo = await User.findOne({
             where: {
                 user: { [Sequelize.Op.eq]: username },
                 password: { [Sequelize.Op.eq]: password }
@@ -229,12 +227,12 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'Failed to set authority!'
     createUser: async function (username, password) {
-        var status = 0;
-        var msg = null;
+        let status = 0;
+        let msg = null;
         await sequelize.transaction(async t => {
             // Insert data to database
             // Your code here
-            var newuser = await User.create({
+            await User.create({
                 user: username,
                 password: password
             }, {transaction: t});
@@ -242,13 +240,13 @@ module.exports = {
                 attributes: [[sequelize.fn('MAX', sequelize.col('dir_id')), 'dir_id']],
                 transaction: t
             })
-            var max_i = result.dir_id + 1;
-            var homedirectory = await Directory.create({
+            let max_i = result.dir_id + 1;
+            await Directory.create({
                 dir_id: max_i,
                 name: '/',
                 user: username
             }, {transaction: t});
-            var homeDR = await DirectoryRelation.create({
+            await DirectoryRelation.create({
                 dir_id: max_i,
                 ancestor: max_i,
                 depth: 0
@@ -277,14 +275,14 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'Permission denied.'
     getItemList: async function (dir_id, user) {
-        var status = 0;
-        var msg = null;
+        let status = 0;
+        let msg = null;
         let ck = await this.checkAuthority(dir_id, user);
         let ownship = await this.checkDir(dir_id);
-        var itemlist = [];
+        let itemlist = [];
         console.log("Authority:", ck.authority);
         if (ck.authority >= 1 && status == 0) {
-            var dirs = await Directory.findAll({
+            let dirs = await Directory.findAll({
                 attributes: ['name', 'dir_id'],
                 include: [
                     {
@@ -306,7 +304,7 @@ module.exports = {
                 status = -1;
                 msg = err.message;
             });
-            var filesindir = await FileInDirectory.findAll({
+            let filesindir = await FileInDirectory.findAll({
                 attributes: [
                     ['file_id', 'file_id'],
                     [Sequelize.literal("File.update_time"), 'update_time'],
@@ -365,10 +363,10 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'invaild path.', 'Permission denied.'
     getItemListByPath: async function (path, user) {
-        var status = 0;
-        var msg = null;
-        var tmppath = fixpath(path);
-        var nowdir = await pathTodirID(tmppath, user).catch(err => {
+        let status = 0;
+        let msg = null;
+        let tmppath = fixpath(path);
+        let nowdir = await pathTodirID(tmppath, user).catch(err => {
             status = -1;
             msg = err.message;
         });
@@ -376,15 +374,16 @@ module.exports = {
             status = -1;
             msg = 'invaild path.';
         }
+        let result;
         if (status == 0) {
-            var result = await this.getItemList(nowdir, user);
+            result = await this.getItemList(nowdir, user);
             if (result.success != 0) {
                 status = result.success;
                 msg = result.msg;
             }
         }
         else {
-            var result = {
+            result = {
                 success: status,
                 msg: msg,
                 list: [],  
@@ -413,8 +412,8 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'Permission denied.'
     createFile: async function (name, dir_id, update_time, user, path, size) {
-        var status = 0;
-        var msg = null;
+        let status = 0;
+        let msg = null;
         let ck = await this.checkAuthority(dir_id, user);
         if (ck.authority > 1) {
             await sequelize.transaction(async t => {
@@ -422,8 +421,8 @@ module.exports = {
                     attributes: [[sequelize.fn('MAX', sequelize.col('file_id')), 'file_id']],
                     transaction: t
                 })
-                var max_i = result.file_id + 1;
-                let newfile = await Files.create({
+                let max_i = result.file_id + 1;
+                await Files.create({
                     file_id: max_i,
                     name: name,
                     update_time: update_time,
@@ -431,7 +430,7 @@ module.exports = {
                     size: size,
                     path: path
                 }, { transaction: t });
-                let newfile_dir = await FileInDirectory.create({
+                await FileInDirectory.create({
                     file_id: max_i,
                     dir_id: dir_id
                 }, { transaction: t });
@@ -460,10 +459,10 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'invaild path.', 'Permission denied.'
     createFileByPath: async function (name, dir_path, update_time, user, path, size) {
-        var status = 0;
-        var msg = null;
-        var tmppath = fixpath(dir_path);
-        var dir_id = await pathTodirID(tmppath, user).catch(err => {
+        let status = 0;
+        let msg = null;
+        let tmppath = fixpath(dir_path);
+        let dir_id = await pathTodirID(tmppath, user).catch(err => {
             status = -1;
             msg = err.message;
         });
@@ -493,17 +492,17 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'invaild path.', 'invaild dirname.', 'duplicate name.', 'Failed to set authority!'
     makedirectory: async function (dirname, path, user) {
-        var status = 0;
-        var msg = null;
+        let status = 0;
+        let msg = null;
         await sequelize.transaction(async t => {
             if (dirname == '' || dirname.includes('/')) {
                 throw new Error('invaild dirname.');
             }
-            var nowdir = await pathTodirID(path, user);
+            let nowdir = await pathTodirID(path, user);
             if (nowdir == null) {
                 throw new Error('invaild path.');
             }
-            var result = await Directory.findOne({
+            let result = await Directory.findOne({
                 attributes: [
                     ['name', 'name']
                 ],
@@ -532,7 +531,7 @@ module.exports = {
                 attributes: [[sequelize.fn('MAX', sequelize.col('dir_id')), 'dir_id']],
                 transaction: t
             })
-            var max_i = result.dir_id + 1;
+            let max_i = result.dir_id + 1;
             await Directory.create({
                 dir_id: max_i,
                 name: dirname,
@@ -580,15 +579,29 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'Permission denied.'
     updateAuthority: async function (dir_id, user, targetUser, authority) {
-        var status = 0;
-        var msg = null;
-        await sequelize.transaction(async t => {
-            await updateAuthorityInTran(dir_id, user, targetUser, authority, t);
-        }).catch(err => {
-            console.log(err);
+        let status = 0;
+        let msg = null;
+        let ck = await this.checkUser(user);
+        if (ck.success != 0) {
             status = -1;
-            msg = err.message;
-        })
+            msg = 'user not exists.';
+        }
+        if (status == 0) {
+            let ck = await this.checkUser(targetUser);
+            if (ck.success != 0) {
+                status = -1;
+                msg = 'target user not exists.';
+            }
+        }
+        if (status == 0) {
+            await sequelize.transaction(async t => {
+                await updateAuthorityInTran(dir_id, user, targetUser, authority, t);
+            }).catch(err => {
+                console.log(err);
+                status = -1;
+                msg = err.message;
+            })
+        }
         checkError(msg);
         return {
             success: status,
@@ -605,8 +618,8 @@ module.exports = {
     // }
     // Possible msg: SQL Error
     checkAuthority: async function (dir_id, user) {
-        var status = 0;
-        var msg = null;
+        let status = 0;
+        let msg = null;
         let ck_exist = await Privilege.findOne({
             where: {
                 dir_id: { [Sequelize.Op.eq]: dir_id },
@@ -634,10 +647,10 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'No owner or directory not exists.'
     checkDir: async function (dir_id) {
-        var status = 0;
-        var owner = null;
-        var name = null;
-        var msg = null;
+        let status = 0;
+        let owner = null;
+        let name = null;
+        let msg = null;
         let ck_exist = await Directory.findOne({
             where: {
                 dir_id: { [Sequelize.Op.eq]: dir_id },
@@ -673,15 +686,15 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'Permission denied.'
     getAuthorityList: async function (path, user) {
-        var status = 0;
-        var msg = null;
-        var tmppath = fixpath(path);
-        var dir_id = await pathTodirID(tmppath, user).catch(err => {
+        let status = 0;
+        let msg = null;
+        let tmppath = fixpath(path);
+        let dir_id = await pathTodirID(tmppath, user).catch(err => {
             status = -1;
             msg = err.message;
         });
+        let poi = []
         if (status == 0) {
-            var poi = []
             let ck = await this.checkAuthority(dir_id, user);
             if (ck.authority < 3) {
                 status = -1;
@@ -725,8 +738,8 @@ module.exports = {
     // }
     // Possible msg: SQL Error, 'Permission denied.', 'Failed to get file.'
     getFile: async function (f_id, dir_id, user) {
-        var status = 0;
-        var msg = null;
+        let status = 0;
+        let msg = null;
         let ck = await this.checkAuthority(dir_id, user);
         if (ck.authority < 1) {
             status = -1;
@@ -744,8 +757,9 @@ module.exports = {
                 msg = 'invaild action.';
             }
         }
+        let result;
         if (status == 0) {
-            var result = await Files.findOne({
+            result = await Files.findOne({
                 where: {
                     file_id: { [Sequelize.Op.eq]: f_id }
                 },
@@ -761,7 +775,7 @@ module.exports = {
             }
         }
         else {
-            var result = {
+            result = {
                 path: null,
                 name: null,
             }
@@ -776,8 +790,8 @@ module.exports = {
     },
 
     checkUser: async function (user) {
-        var status = 0;
-        var msg = null;
+        let status = 0;
+        let msg = null;
         let ck = await User.findOne({
             where: {
                 user: { [Sequelize.Op.eq]: user }
@@ -797,10 +811,10 @@ module.exports = {
     },
 
     getSharedList: async function (user) {
-        var status = 0;
-        var msg = null;
-        var itemlist = [];
-        var result = await Privilege.findAll({
+        let status = 0;
+        let msg = null;
+        let itemlist = [];
+        let result = await Privilege.findAll({
             attributes: [
                 'dir_id', 'priv'
             ],
