@@ -1,22 +1,23 @@
 
 ## 工具
-后端使用express.js + MySQL UI框架待定
+后端使用express.js + MySQL。
+前端UI框架: Semantic UI。
 
 
 ## 基本约定
 1. 支持用户注册登录。
-2. 每一个用户拥有一个自己的根目录(路径为`/[user]/home`, 如用户名为Dexan的根目录的路径为`/Dexan/home`)。
+2. 每一个用户拥有一个自己的根目录, 路径为`/`。
 3. 所有的文件与文件夹有都有路径, 所有的文件与文件夹的一级目录都**必须**是根目录。
 4. 域名约定如下:
 ```
 Index: https://domain
 Sign up: https://domain/signup
 Sign in: https://domain/signin
-Personal root directory: https://domain/[user]
-Any files or directories: https://domain/[user]?path=[path]
-Shared files or directories: https://domain/[user]/shared?id=[dir_id]
+Directories Contents: https://domain/user/[user]?path=[path]
+Directories Managements: https://domain/user/manage/[user]?path=[path]
+Shared files or directories: https://domain/shared/[user]?dir_id=[dir_id]
 ```
-举例说明: Dexan上传了一个名为`1.txt`的文件到`/dir`文件夹下, 则该文件的路径为`/dir/1.txt`。kingiw分享了一个文件夹给Dexan, 则Dexan账户下访问该文件夹的方式为`https://domain/Dexan/shared?id=[dir_id]`, 其中`dir_id`是文件夹的主键, 下文会再阐述。
+举例说明: Dexan上传了一个名为`1.txt`的文件到`/dir`文件夹下, 则该文件的路径为`/dir/1.txt`。kingiw分享了一个文件夹给Dexan, 则Dexan账户下访问该文件夹的方式为`https://domain/user/shared/Dexan?id=[dir_id]`, 其中`dir_id`是文件夹的主键, 下文会再阐述。
 
 
 5. 所有用户的文件夹对每个用户状态有三种: **不可读写**, **只读**, **可写**, **所有权**。它们三者的权限分别是:
@@ -66,10 +67,3 @@ Shared files or directories: https://domain/[user]/shared?id=[dir_id]
 |UserInGroup|**user**, **group_id**|表示user是group_id分组内的成员|
 
 
-## 主要页面
-1. 注册
-2. 登陆
-3. 显示用户自己的**根**文件夹(`domain/[user]?path=/`)
-4. 显示用户自己的某个文件夹(`domain/[user]?path=[path]`)
-4. 显示用户可以访问的文件夹列表(`domain/[user]/shared`)
-5. 显示用户可以访问的文件夹内容(`domain/[user]/shared?id=[dir_id]`)。
