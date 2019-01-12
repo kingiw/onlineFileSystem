@@ -68,7 +68,7 @@ app.route('/signin')
     })
     .post(async (req, res) => {
         let username = req.body.username;
-        let password = encrypt.md5(req.body.password);
+        let password = encrypt.md5(req.body.username + req.body.password);
         let sess = req.session;
         
         // Judge whether it's validate
@@ -104,7 +104,7 @@ app.route('/signup')
     })
     .post(async (req, res) => {
         let username = req.body.username;
-        let password = encrypt.md5(req.body.password);
+        let password = encrypt.md5(req.body.username + req.body.password);
         return res.json(await dbi.createUser(username, password));
     })
 

@@ -25,7 +25,7 @@ create table if not exists File(
     update_time varchar(255) not null,
     user varchar(255),
     size int,
-    data blob,
+    path varchar(255),
     PRIMARY KEY(file_id),
     CONSTRAINT FK_File_User foreign key(user) references User(user) on delete set null
 );
@@ -43,4 +43,22 @@ create table if not exists Privilege(
     PRIMARY KEY(user, dir_id),
     CONSTRAINT FK_Privilege_User foreign key(user) references User(user) on delete cascade,
     CONSTRAINT FK_Privilege_Directory foreign key(dir_id) references Directory(dir_id) on delete cascade
+);
+create table if not exists FileLog(
+    log_id int not null,
+    action char(10) not null,
+    timestamp varchar(255) not null,
+    user varchar(255),
+    file_id int,
+    PRIMARY KEY(log_id)
+);
+create table if not exists PrivilegeLog(
+    log_id int not null,
+    action char(10) not null,
+    timestamp varchar(255) not null,
+    newval int,
+    dir_id int,
+    user varchar(255),
+    targetuser varchar(255),
+    PRIMARY KEY(log_id)
 );
