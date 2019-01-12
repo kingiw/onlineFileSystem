@@ -315,6 +315,7 @@ app.route('/authoritylog').get(async (req, res) => {
 
 app.set('port', process.env.PORT || 8080);
 app.listen(app.get('port'));
-console.log('Listenning...')
+let port = process.env.PORT || 8080;
+console.log('Listenning on port %s ...', port);
 
 
