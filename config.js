@@ -1,8 +1,8 @@
 module.exports = {
-    dbhost: 'alayse.org',
-    dbuser: 'dswww',
-    dbpwd: 'AlaDBSwww',
-    database: 'DCWEB',
+    dbhost: 'localhost',
+    dbuser: 'youruser',
+    dbpwd: 'yourpassword',
+    database: 'yourtablename',
     dbport: 3305,
     dbdebug: console.log
 }
