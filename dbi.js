@@ -22,6 +22,11 @@ User.hasMany(Privilege, { foreignKey: 'user' });
 Privilege.belongsTo(User, { foreignKey: 'user' });
 Directory.hasMany(Privilege, { foreignKey: 'dir_id' });
 Privilege.belongsTo(Directory, { foreignKey: 'dir_id' });
+let FileLog = require('./dbmodels/filelog');
+let PrivilegeLog = require('./dbmodels/privilegelog');
+
+let util_l = require('./util');
+Date.prototype.toString = function () { return util_l.dateFormat(this, 'yyyy-MM-dd hh:mm:ss') };
 
 let DEBUG = true;
 
@@ -39,6 +44,40 @@ function fixpath(path) {
     if (!path || path == '')
         return '/';
     return path;
+}
+
+async function filelog(user, file_id, action, t) {
+    let result = await FileLog.findOne({
+        attributes: [[sequelize.fn('MAX', sequelize.col('log_id')), 'log_id']],
+        transaction: t
+    })
+    let max_i = result.log_id + 1;
+    await FileLog.create({
+        log_id: max_i,
+        action: action,
+        timestamp: new Date().toString(),
+        user: user,
+        file_id: file_id
+    }, { transaction: t });
+    return true;
+}
+
+async function privilegelog(user, targetuser, dir_id, newval, action, t) {
+    let result = await PrivilegeLog.findOne({
+        attributes: [[sequelize.fn('MAX', sequelize.col('log_id')), 'log_id']],
+        transaction: t
+    })
+    let max_i = result.log_id + 1;
+    await PrivilegeLog.create({
+        log_id: max_i,
+        action: action,
+        timestamp: new Date().toString(),
+        newval: newval,
+        dir_id: dir_id,
+        user: user,
+        targetuser: targetuser
+    }, { transaction: t });
+    return true;
 }
 
 async function pathTodirID(path, user) {
@@ -170,6 +209,7 @@ async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) 
             dir_id: dir_id,
             priv: authority
         }, { transaction: tran });
+        await privilegelog(user, targetUser, dir_id, authority, 'CREATE', tran);
     }
     else {
         if (targetUser == user) {
@@ -187,6 +227,7 @@ async function updateAuthorityInTran(dir_id, user, targetUser, authority, tran) 
                 transaction: tran
             }
         );
+        await privilegelog(user, targetUser, dir_id, authority, 'UPDATE', tran);
     }
 }
 
@@ -434,6 +475,7 @@ module.exports = {
                     file_id: max_i,
                     dir_id: dir_id
                 }, { transaction: t });
+                await filelog(user, max_i, 'CREATE', t);
             }).catch(err => {
                 status = -1;
                 msg = err.message;
@@ -780,6 +822,11 @@ module.exports = {
                 name: null,
             }
         }
+        sequelize.transaction(async t => {
+            await filelog(user, f_id, 'GET', t);
+        }).catch(err => {
+            console.log('Failed to log.');
+        });
         checkError(msg);
         return {
             success: status,
@@ -863,5 +910,67 @@ module.exports = {
             // currentDir: 'Others sharing directories',
             isSharedIndex: 'True'
         }
-    }
+    },
+
+    getFileLog: async function () {
+        let status = 0;
+        let msg = null;
+        let result = await FileLog.findAll({
+            attributes: [
+                'log_id', 'action', 'timestamp', 'user', 'file_id'
+            ]
+        }).catch(err => {
+            status = -1;
+            msg = err.message;
+        });
+        let loglist = [];
+        if (status == 0) {
+            for (let i of result) {
+                loglist.push({
+                    log_id: i.log_id,
+                    action: i.action,
+                    timestamp: i.timestamp,
+                    user: i.user,
+                    file_id: i.file_id
+                });
+            }
+        }
+        return {
+            success: status,
+            msg: msg,
+            loglist: loglist
+        }
+    },
+
+    getAuthorityLog: async function () {
+        let status = 0;
+        let msg = null;
+        let result = await PrivilegeLog.findAll({
+            attributes: [
+                'log_id', 'action', 'timestamp', 'newval', 'dir_id', 'user', 'targetuser'
+            ]
+        }).catch(err => {
+            status = -1;
+            msg = err.message;
+        });
+        let loglist = [];
+        if (status == 0) {
+            for (let i of result) {
+                loglist.push({
+                    log_id: i.log_id,
+                    action: i.action,
+                    timestamp: i.timestamp,
+                    user: i.user,
+                    targetuser: i.targetuser,
+                    dir_id: i.dir_id,
+                    newval: i.newval
+                });
+            }
+        }
+        return {
+            success: status,
+            msg: msg,
+            loglist: loglist
+        }
+    },
 }

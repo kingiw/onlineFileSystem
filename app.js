@@ -302,6 +302,16 @@ app.route('/authority').post(async (req, res) => {
     return res.send(data);
 })
 
+app.route('/filelog').get(async (req, res) => {
+    let result = await dbi.getFileLog();
+    return res.json(result);
+})
+
+app.route('/authoritylog').get(async (req, res) => {
+    let result = await dbi.getAuthorityLog();
+    return res.json(result);
+})
+
 
 app.set('port', process.env.PORT || 8080);
 app.listen(app.get('port'));
