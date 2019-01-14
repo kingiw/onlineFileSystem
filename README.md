@@ -224,7 +224,8 @@ app.use(session({
 
 ##### 上传与下载文件
 
-这部分我们使用了nodejs自带的[multer](https://www.npmjs.com/package/multer)库来实现。
+上传我们使用了nodejs自带的[multer](https://www.npmjs.com/package/multer)库来实现文件传输。
+下载则是通过Express的res.download方法实现。
 
 ##### 密码的处理
 
